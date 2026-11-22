@@ -46,3 +46,5 @@ Ask before running git commands that change remote or branch state. Read-only in
 ## 6. List changed files at the end
 
 When a task changes files on disk, finish with the list of files changed.
+
+## 7. Task documentation

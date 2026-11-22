@@ -1,0 +1,114 @@
+{
+  "startedAt": "2026-11-22T17:36:38.514Z",
+  "lifecycle": [
+    "app ready",
+    "server listening",
+    "browser window created",
+    "debugger attached",
+    "did-start-loading",
+    "http request /",
+    "Network.enable sent",
+    "http request /data.json",
+    "did-finish-load",
+    "loadURL resolved",
+    "dom extracted",
+    "window visible for 8 more seconds",
+    "response body captured"
+  ],
+  "cdpEvents": [
+    {
+      "type": "request",
+      "requestId": "B3589EB05A02E2E4F3B3174DD56F8CB8",
+      "url": "http://127.0.0.1:8765/",
+      "method": "GET",
+      "typeHint": "Document"
+    },
+    {
+      "type": "response",
+      "requestId": "B3589EB05A02E2E4F3B3174DD56F8CB8",
+      "url": "http://127.0.0.1:8765/",
+      "status": 200,
+      "mimeType": "text/html"
+    },
+    {
+      "type": "request",
+      "requestId": "13720.2",
+      "url": "http://127.0.0.1:8765/data.json",
+      "method": "GET",
+      "typeHint": "Fetch"
+    },
+    {
+      "type": "response",
+      "requestId": "13720.2",
+      "url": "http://127.0.0.1:8765/data.json",
+      "status": 200,
+      "mimeType": "application/json"
+    }
+  ],
+  "cdpErrors": [],
+  "responseBodies": [
+    {
+      "url": "http://127.0.0.1:8765/data.json",
+      "body": "{\"ok\":true,\"items\":[10,20,30]}",
+      "base64Encoded": false
+    }
+  ],
+  "webRequest": [
+    {
+      "url": "http://127.0.0.1:8765/",
+      "method": "GET",
+      "statusCode": 200,
+      "responseHeaders": {
+        "Connection": [
+          "keep-alive"
+        ],
+        "Content-Length": [
+          "383"
+        ],
+        "Content-Type": [
+          "text/html; charset=utf-8"
+        ],
+        "Date": [
+          "Sun, 22 Nov 2026 17:36:40 GMT"
+        ],
+        "Keep-Alive": [
+          "timeout=5"
+        ]
+      }
+    },
+    {
+      "url": "http://127.0.0.1:8765/data.json",
+      "method": "GET",
+      "statusCode": 200,
+      "responseHeaders": {
+        "Connection": [
+          "keep-alive"
+        ],
+        "Content-Length": [
+          "30"
+        ],
+        "Content-Type": [
+          "application/json; charset=utf-8"
+        ],
+        "Date": [
+          "Sun, 22 Nov 2026 17:36:40 GMT"
+        ],
+        "Keep-Alive": [
+          "timeout=5"
+        ]
+      }
+    }
+  ],
+  "dom": {
+    "title": "Bridge CDP Test",
+    "heading": "Bridge CDP Test",
+    "result": "{\"ok\":true,\"items\":[10,20,30]}"
+  },
+  "isolation": {
+    "nodeIntegration": false,
+    "contextIsolation": true,
+    "sandbox": true
+  },
+  "finishedAt": "2026-11-22T17:37:01.854Z",
+  "reason": "load"
+}

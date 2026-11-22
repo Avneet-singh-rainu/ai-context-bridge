@@ -1,0 +1,19 @@
+yaml
+# Single source of truth for this ticket's status. docs/README.md is generated from these files.
+# Update `status` and `updated` in the same pass as the work itself.
+# A status that has not moved in 30 days is a bug, not a state.
+
+ticket:  ISSUE-NNNN
+title:                        # plain sentence, matches the Jira title
+status:  Design only          # Design only | In Progress | Blocked | Shipped
+blocked_reason:               # required when status is Blocked, otherwise leave empty
+tier:    2                    # 1 = trivial | 2 = standard | 3 = heavy
+
+systems: []                   # _systems/ docs this ticket touches
+                              # e.g. [Invoicing_Pipeline, Tax_Model, QuickBooks_Integration]
+
+parent:                       # parent/epic ticket id, e.g. C360-208. Empty if none.
+children: []                  # child ticket ids. Keep both directions in sync.
+
+updated: YYYY-MM-DD
+
