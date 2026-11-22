@@ -7,3 +7,6 @@ Expected: results.json has four CDP events and one JSON response body.
  
 ## TC2 - VS Code debug 
 Expected: F5 starts Electron with .vscode/launch.json and breakpoints pause main-process code. 
+
+## TC3 - Isolation probe
+Expected: results.isolation.probe reports `undefined` for require, process, module and window.electronAPI. results.cdpErrors has no isolation error.
