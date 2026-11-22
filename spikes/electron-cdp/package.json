@@ -1,0 +1,13 @@
+{
+  "name": "ai-context-bridge-electron-cdp-spike",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Milestone 0 proof of concept for Electron browser and network capture.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "latest"
+  }
+}

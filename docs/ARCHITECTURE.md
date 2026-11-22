@@ -1,14 +1,15 @@
 # Architecture
 
-**Status:** undecided pending Milestone 0.
+**Status:** Electron + React + TypeScript selected for the Windows MVP. The Milestone 0 spike is still pending.
 
-The handoff proposes Tauri 2 with React + TypeScript and a separate WebView2 browser control on Windows, but explicitly flags this as an unproven assumption. The alternative is Electron + React + TypeScript.
+The handoff proposed Tauri 2 with a separate WebView2 browser control, but flagged that approach as a critical risk. The evidence and decision are recorded in [ADR 0001](./decisions/0001-stack-selection.md).
 
-Before feature work begins, a feasibility spike must verify:
+Electron owns the desktop shell and the built-in browser. React + TypeScript render the UI. Screenshot OCR, browser capture, and export stay behind provider interfaces so each part can be replaced.
 
-1. Whether a separate WebView2 control can be hosted cleanly inside the desktop app window with correct resize, focus, keyboard input, and lifecycle behavior.
-2. Whether the required DevTools Protocol network events and response bodies are accessible reliably.
-3. Whether browser content and desktop UI remain isolated.
-4. Packaging and WebView2 runtime distribution requirements.
+## Milestone 0 checks still to run
 
-A decision record will be added under `docs/decisions/` once evidence is available. Do not treat Tauri as the confirmed stack until then.
+1. Attach `webContents.debugger` and confirm CDP `Network.requestWillBeSent`, `Network.responseReceived`, and `Network.getResponseBody`.
+2. Confirm `session.webRequest` gives status, MIME type, and headers.
+3. Confirm DOM extraction from the active page.
+4. Confirm browser content stays isolated from the app UI.
+5. Confirm `electron-builder` produces a working Windows NSIS installer.
