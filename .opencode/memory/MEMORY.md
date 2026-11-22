@@ -1,0 +1,31 @@
+# Memory Index
+
+- [User Profile](user_profile.md) â€” Avneet Singh, .NET API developer, Caresmartz360, working on multi-tax C360-34098
+- [Project C360-34098](project_c360_34098.md) â€” Multi-tax (GST/QST/HST/PST) billing feature, Avneet's 6 tickets, 12-14 week estimate
+- [Implementation Plan](project_c360_34098_impl.md) â€” Detailed per-ticket implementation plan with exact file paths, DB changes, API design
+- [Atlassian Identity](user_profile_atlassian.md) â€” real Jira email is avneet.singh@caresmartz360.com, site is netsmartz.atlassian.net (not mandeep.singh/caresmartz360)
+- [Jira MCP Server](reference_jira_mcp_server.md) â€” local FastMCP Jira server at D:\Caresmartz360\jira-mcp-server, use it for issue lookups; returned [] on 2026-10-08, Rovo fallback is logged in as Arpit so filter by Avneet's email
+- [Jira Read-Only Constraint](feedback_jira_read_only.md) â€” only read-only calls against Jira for now, no writes
+- [Repo Structure](reference_repo_structure.md) â€” Forge is a common folder, NOT a git repo; real repos incl. Database, Homecare\HomeCare-CS360; docs\<TICKET>\ is a shared untracked sibling for ALL repos
+- [Test Data Creation Flow](reference_test_data_creation_flow.md) â€” working API sequence + gotchas for creating client/caregiver/payer/schedule/invoice test data in Avneet office (dev) + headless Playwright path for staging
+- [Git Ops Confirmation](feedback_git_network_ops_confirmation.md) â€” ask before any git command EXCEPT git add and read-only status/diff/log/show/branch-list (pre-approved 2026-11-13); never any git on BFF/AgencyWebApp
+- [Verify Hardcoded Values](feedback_verify_hardcoded_values.md) â€” verify any hardcoded GUID/magic number/string against real code+data across environments before relying on it; confirm with user first
+- [Use AskUserQuestion Popups](feedback_use_askuserquestion_popups.md) â€” prefer popup confirmations over plain chat text; user sometimes misses/forgets to answer inline questions
+- [Database Repo Branch Base](feedback_database_repo_branch_base.md) â€” Database repo: always branch off `Prod`; other repos see project_repo_base_branches (Next = Production, not Development)
+- [Amount Comma Convention](project_amount_comma_convention.md) â€” commas in amount/currency fields are always thousands separators here, never decimal separators - safe to strip
+- [Cascade Doc Updates](feedback_cascade_doc_updates.md) â€” when a decision changes, sweep ALL docs in the ticket folder that referenced it, not just Decisions.md/Design.md
+- [Don't Rebuild DB Repeatedly](feedback_dont_rebuild_db_repeatedly.md) â€” batch DB schema/SP edits, verify with one MSBuild rebuild at the end, not after every small edit
+- [Homecare Stage-Ticket Skill](reference_homecare_stage_ticket_skill.md) â€” project skill at .claude/skills/homecare-stage-ticket branches off origin/Production per ticket + stages, git approval still required
+- [Help Center MCP](reference_helpcenter_mcp_server.md) â€” caresmartz-help MCP server queries the Intercom help center live for documented business logic
+- [Understand Ticket First](feedback_understand_ticket_first.md) â€” on any new ticket, explain/confirm the ticket before any code or design work
+- [Short Simple Explanations](feedback_short_simple_explanations.md) â€” keep chat answers short, plain English, no jargon
+- [Name Nouns, Not Pronouns](feedback_name_nouns_not_pronouns.md) â€” write the actual noun instead of it/they/this/that; pronouns are confusing to read
+- [DB Deployment Script Drift](feedback_db_deployment_script_drift.md) â€” re-verify <TICKET>_DB_Deployment.sql after EVERY DB edit, incl. comment-only; checker script in _systems/runbooks
+- [Branch Bugs In Feature Folder](feedback_branch_bugs_in_feature_folder.md) â€” Jira "Branch Bug" tickets found by a feature's own test suite go inside that feature's docs folder, not a separate one
+- [List Changed Files](feedback_list_changed_files.md) â€” end every message that changed anything on disk with the file list; also CLAUDE.md rule 19
+- [ClientPayer NULL Rows Are Not Orphans](project_clientpayer_null_rows_are_not_orphans.md) â€” ClientId=NULL rows are live per-slot scheduling data; never call them orphans, never propose deleting
+- [mssql Environments](reference_mssql_environments.md) â€” mssql tool has only dev/staging/AbbeyCare; autoqa_base is NOT reachable and abbeycare_base_1 != autoqa's DB
+- [CS360 Privilege Grant Check](reference_cs360_privilege_grant_check.md) â€” a Privileges master row != granted; check RoleTypePrivileges + active RolePrivileges; missing grant can blank a whole gated view
+- [Worktree Deletion](feedback_worktree_deletion.md) â€” never remove a ticket worktree without approval of that exact folder; refuse if uncommitted/unpushed
+- [Repo Base Branches](project_repo_base_branches.md) â€” ticket branches off: Database origin/Prod, HomeCare-CS360 + Caresmartz360Next origin/Production
+- [Remote Branch First](feedback_remote_branch_first.md) â€” dont create ticket branches; ask user to create on remote first, only on "no" branch locally from base

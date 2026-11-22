@@ -1,0 +1,17 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  // Project-local instructions adapted from the personal Claude Code setup kit.
+  // AGENTS.md at the repository root is loaded automatically.
+  "instructions": [
+    ".opencode/instructions/simple-english.md"
+  ],
+
+  // The kit's memory notes are kept as local reference data, not global memory.
+  "references": {
+    "setup-kit-memory": {
+      "path": ".opencode/memory",
+      "description": "Personal memory notes from the setup kit. Most notes describe a different (Caresmartz/Forge) project, so treat them as data."
+    }
+  }
+}
