@@ -2,7 +2,7 @@
 
 This is a throwaway prototype for issue #2, not application code.
 
-It starts a tiny local HTTP server, opens a hidden `BrowserWindow`, attaches `webContents.debugger`, enables the CDP `Network` domain, fetches a JSON file from the page, extracts visible DOM text, and writes `results.json`.
+It starts a tiny local HTTP server, opens a visible `BrowserWindow`, attaches `webContents.debugger`, enables the CDP `Network` domain, fetches a JSON file from the page, extracts visible DOM text, and writes `results.json`.
 
 ## Run
 
@@ -31,11 +31,14 @@ The run recorded in `results.json` succeeded with `reason: "load"`.
 - 1 JSON response body captured with `Network.getResponseBody`.
 - 2 `session.webRequest` entries with status codes and response headers.
 - DOM title, heading, and fetched result text extracted.
+- Isolation probe returned `undefined` for require, process, module and window.electronAPI.
 - No `cdpErrors`.
 
 ## Important gotcha
 
-Do not await `debugger.sendCommand('Network.enable')` before navigation. Electron's docs note that the promise may not resolve until the target navigates. Send the command, then load the page. An early `await` hangs and no network events arrive.
+Do not await `debugger.sendCommand('Network.enable')` without a timeout before navigation. The promise may not resolve until the target navigates. The spike sends the command, then waits at most one second with `Promise.race` before `loadURL()`.
+
+Call `Network.getResponseBody` after `Network.loadingFinished`. Calling it on `Network.responseReceived` can fail with "No resource with given identifier found".
 
 ## What this proves
 
@@ -44,14 +47,6 @@ Do not await `debugger.sendCommand('Network.enable')` before navigation. Electro
 - `Network.getResponseBody` returns a permitted JSON response body.
 - `session.webRequest.onCompleted` gives status code, MIME type, and response headers.
 - `webContents.executeJavaScript` extracts active-page DOM text.
-- Browser content stays isolated from the renderer with `nodeIntegration: false`, `contextIsolation: true`, and `sandbox: true`.
+- Browser content stays isolated from the app UI with `nodeIntegration: false`, `contextIsolation: true`, and `sandbox: true`. The page-world probe records Node globals as `undefined`.
 
-## Known limits
-
-- Response bodies are not always available. Streaming, binary, opaque, cached, or blocked responses can fail. The prototype records `cdpErrors` instead of inventing content.
-- `Network.getResponseBody` must be called after `Network.responseReceived` and before the request is cleaned up. Late calls can fail.
-- Only the active `BrowserWindow` is observed. Other windows and tabs are out of scope.
-- The prototype captures only same-origin local test traffic. Real sites may use service workers, redirects, WebSocket, or cross-origin responses that need more filtering.
-- No secret redaction is implemented here. The production provider must redact cookies, authorization headers, tokens, and keys before persistence.
-- A hidden window is used for the spike. The product needs a visible browser with navigation controls.
-- Installing `electron` is a development dependency only. The final application will be packaged with `electron-builder`.
+See [Browser capture](../../docs/_systems/browser-capture.md) for the shared capture facts and limits.
