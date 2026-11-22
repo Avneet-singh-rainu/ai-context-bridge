@@ -22,6 +22,7 @@ const results = {
 let server = null;
 let finished = false;
 let watchdog = null;
+const requestUrls = new Map();
 
 function record(message) {
 	results.lifecycle.push(message);
@@ -106,6 +107,22 @@ app.whenReady().then(async () => {
 			} catch (error) {
 				results.cdpErrors.push(`DOM extraction: ${error.message}`);
 			}
+			try {
+				results.isolation.probe = await win.webContents.executeJavaScript(`({
+          require: typeof require,
+          process: typeof process,
+          module: typeof module,
+          electronAPI: typeof window.electronAPI
+        })`);
+				const leaked = Object.values(results.isolation.probe).filter((value) => value !== 'undefined');
+				if (leaked.length > 0) {
+					results.cdpErrors.push(`isolation probe leaked: ${leaked.join(', ')}`);
+				} else {
+					record('isolation verified');
+				}
+			} catch (error) {
+				results.cdpErrors.push(`isolation probe: ${error.message}`);
+			}
 			record('window visible for 8 more seconds');
 			await wait(8000);
 			finishSpike('load');
@@ -141,6 +158,7 @@ app.whenReady().then(async () => {
 
 		debuggerClient.on('message', async (event, method, params) => {
 			if (method === 'Network.requestWillBeSent') {
+				requestUrls.set(params.requestId, params.request.url);
 				results.cdpEvents.push({
 					type: 'request',
 					requestId: params.requestId,
@@ -150,6 +168,7 @@ app.whenReady().then(async () => {
 				});
 			}
 			if (method === 'Network.responseReceived') {
+				requestUrls.set(params.requestId, params.response.url);
 				results.cdpEvents.push({
 					type: 'response',
 					requestId: params.requestId,
@@ -157,13 +176,16 @@ app.whenReady().then(async () => {
 					status: params.response.status,
 					mimeType: params.response.mimeType
 				});
-				if (params.response.url.endsWith('/data.json')) {
+			}
+			if (method === 'Network.loadingFinished') {
+				const url = requestUrls.get(params.requestId);
+				if (url && url.endsWith('/data.json')) {
 					try {
 						const body = await debuggerClient.sendCommand('Network.getResponseBody', {
 							requestId: params.requestId
 						});
 						results.responseBodies.push({
-							url: params.response.url,
+							url: url,
 							body: body.body,
 							base64Encoded: body.base64Encoded
 						});
@@ -182,9 +204,10 @@ app.whenReady().then(async () => {
 			}
 		});
 
-		debuggerClient.sendCommand('Network.enable')
-			.then(() => record('Network.enable sent'))
+		const enableCommand = debuggerClient.sendCommand('Network.enable')
+			.then(() => record('Network.enable resolved'))
 			.catch((error) => results.cdpErrors.push(`Network.enable: ${error.message}`));
+		await Promise.race([enableCommand, wait(1000).then(() => record('Network.enable wait timed out'))]);
 
 		try {
 			await win.loadURL(`http://127.0.0.1:${PORT}/`);
