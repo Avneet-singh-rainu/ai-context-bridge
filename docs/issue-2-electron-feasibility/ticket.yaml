@@ -1,8 +1,8 @@
 ticket: issue-2 
 title: Prove Electron browser and network capture path 
-status: In Progress 
+status: Shipped
 tier: 2 
-systems: [] 
+systems: [browser-capture]
 parent: 
 children: [] 
 updated: 2026-11-22 

@@ -6,4 +6,4 @@ The MVP needs active-page DOM text and network response capture inside a built-i
 ## Design 
 A local test server serves HTML and JSON. Electron attaches webContents.debugger, enables the Network domain, reads response bodies, and extracts DOM text. 
  
-Send Network.enable before navigation but do not await the promise before loadURL. Awaiting before navigation hangs. 
+See [Browser capture](../_systems/browser-capture.md) for the capture path, isolation rules and limits.
