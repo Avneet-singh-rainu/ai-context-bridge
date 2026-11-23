@@ -41,7 +41,7 @@ function createMainWindow(): BrowserWindow {
     if (event.url !== mainWindow.webContents.getURL()) event.preventDefault();
   });
 
-  // Web pages live in a separate view on top of the app page; see browser/browser-view.ts.
+  // Web pages run in an installed Chrome driven by CDP; see browser/browser-view.ts.
   attachBrowser(mainWindow);
 
   // electron-vite sets ELECTRON_RENDERER_URL while `npm run dev` runs its dev server.

@@ -1,4 +1,3 @@
-import type { WebContents } from 'electron';
 import { IPC_CHANNELS } from '../../shared/ipc-contract';
 import {
   isApiResource,
@@ -7,13 +6,14 @@ import {
   NO_NETWORK,
   responseKind,
 } from '../../shared/network';
-import { getPageContents, sendToApp } from './browser-view';
+import { getCdpPage, getPageUrl, sendToApp } from './browser-view';
+import type { CdpPage } from './chrome-cdp';
 import { addResponse } from './network-store';
 
 /**
- * Records the active page's API responses through the Chrome DevTools Protocol, the path the
- * spike proved (docs/_systems/browser-capture.md). Recording runs only between Start and Stop,
- * and stops by itself when the page moves to another site or the debugger is detached.
+ * Records the active Chrome page's API responses through CDP. The Network domain is enabled when
+ * the page attaches; recording runs only between Start and Stop, and stops when the page moves to
+ * another site. Bodies are read after Network.loadingFinished, the path the spike proved.
  */
 
 interface RequestInfo {
@@ -30,10 +30,11 @@ interface ResponseInfo {
 }
 
 let state: NetworkState = NO_NETWORK;
-let contents: WebContents | null = null;
+let activePage: CdpPage | null = null;
 let session = 0;
 let idCounter = 0;
 let pushTimer: NodeJS.Timeout | null = null;
+let unsubscribes: Array<() => void> = [];
 const requests = new Map<string, RequestInfo>();
 const responses = new Map<string, ResponseInfo>();
 
@@ -59,16 +60,18 @@ function originOf(url: string): string | null {
 }
 
 async function readBody(
-  target: WebContents,
+  target: CdpPage,
   requestId: string,
-): Promise<{ body?: string; bytes: number; note?: string }> {
+): Promise<{
+  body?: string;
+  bytes: number;
+  note?: string;
+}> {
   try {
-    const result = (await target.debugger.sendCommand('Network.getResponseBody', {
-      requestId,
-    })) as {
-      body: string;
-      base64Encoded: boolean;
-    };
+    const result = await target.send<{ body: string; base64Encoded: boolean }>(
+      'Network.getResponseBody',
+      { requestId },
+    );
     const body = result.base64Encoded
       ? Buffer.from(result.body, 'base64').toString('utf8')
       : result.body;
@@ -82,7 +85,7 @@ async function readBody(
   }
 }
 
-async function finish(target: WebContents, requestId: string, encodedBytes: number, run: number) {
+async function finish(target: CdpPage, requestId: string, encodedBytes: number, run: number) {
   const request = requests.get(requestId);
   const response = responses.get(requestId);
   requests.delete(requestId);
@@ -103,7 +106,7 @@ async function finish(target: WebContents, requestId: string, encodedBytes: numb
         }
       : await readBody(target, requestId);
   // Stop or a new session may have happened while the body was read.
-  if (run !== session || !state.recording) return;
+  if (run !== session || !state.recording || activePage !== target) return;
 
   state = addResponse(
     state,
@@ -115,7 +118,7 @@ async function finish(target: WebContents, requestId: string, encodedBytes: numb
       body: read.body,
       bodyBytes: read.bytes,
       note: read.note,
-      pageUrl: target.getURL(),
+      pageUrl: getPageUrl(),
       at: new Date().toISOString(),
     },
     nextId,
@@ -123,8 +126,8 @@ async function finish(target: WebContents, requestId: string, encodedBytes: numb
   push();
 }
 
-function onMessage(_event: Electron.Event, method: string, params: Record<string, unknown>) {
-  const target = contents;
+function onMessage(method: string, params: Record<string, unknown>): void {
+  const target = activePage;
   if (!target || !state.recording) return;
   const requestId = String(params.requestId ?? '');
   if (method === 'Network.requestWillBeSent') {
@@ -151,72 +154,43 @@ function onMessage(_event: Electron.Event, method: string, params: Record<string
       state = { ...state, failed: state.failed + 1 };
       push();
     }
-  }
-}
-
-function onDetach(_event: Electron.Event, reason: string) {
-  if (!state.recording) return;
-  endSession({ kind: 'error', text: `Recording stopped: the debugger was detached (${reason}).` });
-}
-
-/** A new site is a new active page, so recording stops there. */
-function onNavigate(_event: Electron.Event, url: string) {
-  if (state.recording && originOf(url) !== state.origin) {
-    endSession({ kind: 'info', text: 'Recording stopped: the page moved to another site.' });
+  } else if (method === 'Page.frameNavigated') {
+    const frame = params.frame as { url?: string; parentId?: string } | undefined;
+    if (frame && !frame.parentId && originOf(frame.url ?? '') !== state.origin) {
+      endSession({ kind: 'info', text: 'Recording stopped: the page moved to another site.' });
+    }
   }
 }
 
 function endSession(notice?: NetworkState['notice']): void {
   session += 1;
-  const target = contents;
-  contents = null;
+  for (const off of unsubscribes) off();
+  unsubscribes = [];
+  activePage = null;
   requests.clear();
   responses.clear();
-  if (target && !target.isDestroyed()) {
-    target.debugger.off('message', onMessage);
-    target.debugger.off('detach', onDetach);
-    target.off('did-navigate', onNavigate);
-    if (target.debugger.isAttached()) {
-      try {
-        target.debugger.detach();
-      } catch {
-        // Already detached.
-      }
-    }
-  }
   state = { ...state, recording: false, ...(notice ? { notice } : { notice: undefined }) };
   push(true);
 }
 
 export async function startRecording(): Promise<{ ok: true } | { ok: false; error: string }> {
   if (state.recording) return { ok: true };
-  const target = getPageContents();
+  const target = getCdpPage();
   if (!target) return { ok: false, error: 'Open a page first.' };
-  const origin = originOf(target.getURL());
+  const origin = originOf(getPageUrl());
   if (!origin) return { ok: false, error: 'Only http and https pages can be recorded.' };
 
-  try {
-    target.debugger.attach('1.3');
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return { ok: false, error: `Recording could not start: ${message}` };
-  }
   session += 1;
-  contents = target;
-  target.debugger.on('message', onMessage);
-  target.debugger.on('detach', onDetach);
-  target.on('did-navigate', onNavigate);
-  // Network.enable may not resolve until the page does something; wait at most one second.
-  // The buffer limits keep Chromium from holding huge bodies for us.
-  await Promise.race([
-    target.debugger
-      .sendCommand('Network.enable', {
-        maxResourceBufferSize: NETWORK_LIMITS.maxBodyBytes + 65_536,
-        maxTotalBufferSize: 32 * 1024 * 1024,
-      })
-      .catch(() => undefined),
-    new Promise((resolve) => setTimeout(resolve, 1000)),
-  ]);
+  activePage = target;
+  for (const method of [
+    'Network.requestWillBeSent',
+    'Network.responseReceived',
+    'Network.loadingFinished',
+    'Network.loadingFailed',
+    'Page.frameNavigated',
+  ]) {
+    unsubscribes.push(target.on(method, (params) => onMessage(method, params)));
+  }
   state = {
     ...state,
     recording: true,
