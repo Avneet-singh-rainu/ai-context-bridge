@@ -19,17 +19,24 @@ still work.
 
 ## 2. Headless Chrome can be rejected by anti-bot checks
 
-**Status:** Accepted by design
+**Status:** Partly fixed - still needs a manual Google sign-in test
 
 **Found:** 2026-11-23
 
-**What happens:** Google may still refuse sign-in in headless Chrome even though the browser is real
-Chrome.
+**What happens:** Headless Chrome exposed `navigator.webdriver` as true and a user agent containing
+`HeadlessChrome`. DuckDuckGo used those signals to show its "Please try again" bot check instead of
+search results. Google may still refuse sign-in for other reasons.
 
-**Why it was not fixed here:** A headed Chrome window layered over the viewport is the documented
-fallback. ADR 0002 records the tradeoff.
+**What was fixed:** The launcher adds `--disable-blink-features=AutomationControlled` and the CDP page
+removes the `Headless` token from Chrome's own user agent before navigation. A standalone Chrome run
+with both changes returned normal DuckDuckGo results for the same search.
 
-**Blast radius:** Google sign-in needs the fallback on affected accounts. Other pages are unaffected.
+**Why not fully fixed here:** Google sign-in needs a real account and a person at the keyboard. A
+headed Chrome window layered over the viewport remains the fallback if Google still refuses
+headless sign-in. ADR 0002 records the tradeoff.
+
+**Blast radius:** Sites that use other bot signals may still block pages. Screenshots, OCR and Context
+still work.
 
 ---
 

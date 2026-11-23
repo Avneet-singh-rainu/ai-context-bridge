@@ -36,3 +36,11 @@
 - `src/main/browser/chrome-launcher.ts` - deletes a stale `DevToolsActivePort` before launching Chrome
   so a previous session's dead port cannot break the next launch.
 - `tests/unit/chrome-launcher.test.ts` - covered stale port removal.
+- `src/main/browser/chrome-launcher.ts` - added `--disable-blink-features=AutomationControlled` so
+  pages read `navigator.webdriver` as false.
+- `src/main/browser/chrome-cdp.ts` - removes the `Headless` token from Chrome's own user agent before
+  the first navigation with `Network.setUserAgentOverride`.
+- `tests/unit/chrome-cdp.test.ts` - covered the user-agent override and page setup replies.
+- `docs/_systems/browser.md` - recorded the browser identity flags.
+- Manual test: DuckDuckGo showed its "Please try again" bot check for a `linkedin` search. With the
+  two identity changes, the same search returned normal results in a standalone Chrome run.
