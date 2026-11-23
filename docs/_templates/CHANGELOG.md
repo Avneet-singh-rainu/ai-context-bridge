@@ -1,4 +1,3 @@
-markdown
 # Changelog - ISSUE-NNNN
 
 <!-- Answers WHAT and WHEN. WHY lives in adr/.
@@ -8,23 +7,20 @@ markdown
 
 ## YYYY-MM-DD
 
-- `Database/dbo/Stored Procedures/Procs6/SomeProc.sql` - one line covering what changed and why.
+- `src/main/<file>.ts` - one line covering what changed and why.
   Name the actual mechanism, not just the symptom.
 
 <!-- ------------------------------------------------------------------------------------------
      TIER 1 TICKETS: this file is the only doc. The entry must also carry the root cause and a
      Verify line, because there is no Design.md to hold them. Shape:
 
-     ## 2026-08-08
+     ## 2026-11-22
 
-     - `Database/dbo/Stored Procedures/Procs5/PrReports_ClientswithNoCompletedSchedules.sql` -
-       fixed the Caregiver column showing a literal ", " instead of "OpenShift" for schedules
-       with no assigned caregiver. Root cause: the previous CONCAT/ISNULL fallback never fired,
-       since CONCAT treats NULL arguments as empty strings.
-       Verify: run the report for an office with an unassigned slot; the Caregiver column reads
-       "OpenShift".
+     - `spikes/electron-cdp/main.js` - fixed the spike stalling before navigation. Root cause:
+       `await debugger.sendCommand('Network.enable')` may not resolve until the target
+       navigates, so `loadURL()` never ran. The spike now waits at most one second.
+       Verify: `npm start` in spikes/electron-cdp writes results.json with reason "load".
 
      That entry is self-sufficient - a stranger can understand the bug, the fix, and how to check
      it, without any other file. That is the bar for Tier 1.
      ------------------------------------------------------------------------------------------ -->
-

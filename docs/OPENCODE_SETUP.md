@@ -9,12 +9,13 @@ This repository keeps a **project-local** copy of the personal setup kit from Go
 | `global/CLAUDE.md` | `AGENTS.md` at the repository root |
 | `global/output-styles/simple-english.md` | `.opencode/instructions/simple-english.md`, loaded by `opencode.jsonc` |
 | `forge/.claude/agents/*.md` | `.opencode/agents/*.md` (5 agents) |
-| `forge/.claude/skills/*/SKILL.md` | `.opencode/skills/*/SKILL.md` (2 skills) |
 | `memory/*.md` | `.opencode/memory/*.md` (30 notes), exposed as the `setup-kit-memory` reference |
 
 ## What was removed
 
 Only the verbatim archive `.opencode/kit/` was removed. That archive contained the single-file bundle, the Forge rules, runbooks, templates, and the two PowerShell scripts. The active OpenCode files listed above were kept.
+
+The 2 kit skills (`forge/.claude/skills/*/SKILL.md`) are not in this repository. An earlier version of this page listed them under `.opencode/skills/`, but that folder was never committed. Copy the skills from the kit again if they are needed.
 
 ## Adaptations
 

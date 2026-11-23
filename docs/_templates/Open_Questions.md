@@ -1,4 +1,3 @@
-markdown
 # Open Questions - ISSUE-NNNN
 
 <!-- Only questions that genuinely need a stakeholder's answer. Things you can settle by reading
@@ -7,8 +6,8 @@ markdown
      Flat file at the ticket root. Never a subfolder, never inline in a design doc.
 
      Update status IN PLACE as answers come in. Never delete a question - the record of what was
-     asked and when it was resolved is the point. Always date it: undated open questions cannot
-     be aged, and 13 of the 21 currently open across this repo carry no date at all. -->
+     asked and when it was resolved is the point. Always date it: an undated open question
+     cannot be aged. -->
 
 ## 1. <the question, as a question>
 

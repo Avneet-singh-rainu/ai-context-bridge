@@ -1,7 +1,53 @@
 # Development
 
-**Status:** setup instructions will be added after the Milestone 0 stack decision.
+## Requirements
 
-No build tooling has been installed yet. The folder structure is intentionally framework-neutral until the desktop stack is confirmed.
+- Windows 10 or 11
+- Node.js 22.12 or newer, with npm (electron-vite and Vite need `^20.19` or `>=22.12`)
+- For Windows OCR: Windows PowerShell 5.1 (`powershell.exe`, part of Windows) and at least one
+  Windows OCR language, such as English. Without them the app falls back to Tesseract. See
+  [OCR](./_systems/ocr.md).
 
-See [ARCHITECTURE.md](./ARCHITECTURE.md) for the open decisions and [the handoff](../AI_Context_Bridge_Codex_Handoff.md) for the planned milestones.
+## First setup
+
+```powershell
+npm install
+npm run dev
+```
+
+If `npm run dev` fails with "Electron uninstall", Electron's download step did not run during
+`npm install`. Run `node node_modules/electron/install.js` once, then start again.
+
+## Scripts
+
+| Command | What it does |
+|---|---|
+| `npm run dev` | Starts the Vite dev server and opens the app with hot reload |
+| `npm run build` | Type-checks, then builds main, preload, and renderer into `out/` |
+| `npm run preview` | Runs the built app from `out/` |
+| `npm run check` | Runs Biome lint, format, and import-order checks (use before a commit) |
+| `npm run check:fix` | Applies Biome's safe fixes |
+| `npm run lint` / `npm run format` | Runs only the Biome linter, or only the formatter (writes files) |
+| `npm run typecheck` | Type-checks with TypeScript 7 |
+| `npm test` | Runs the Vitest unit tests in `tests/` |
+| `npm run dist` | Builds, then writes the NSIS installer to `dist/` |
+| `npm run icon` | Renders `resources/icon.svg` into `resources/icon.png` and `resources/icon.ico` (run after editing the SVG) |
+
+## Where code lives
+
+[App shell](./_systems/app-shell.md) describes the main process, preload bridge, renderer, and
+the IPC rules.
+
+## Debugging
+
+- **Renderer:** while `npm run dev` runs, open `http://localhost:5173` in a normal browser. The
+  sidebar footer shows "Preview outside Electron" because there is no preload bridge, and the
+  window chrome (caption buttons, Mica) is missing. The look and the tokens are described in
+  [UI design](./_systems/ui-design.md).
+- **Capture spike:** see the [spike README](../spikes/electron-cdp/README.md) and its VS Code
+  launch config.
+
+## Task docs
+
+After changing any `ticket.yaml`, run `node scripts/build-task-index.mjs` to rebuild the task table
+in `docs/README.md`.

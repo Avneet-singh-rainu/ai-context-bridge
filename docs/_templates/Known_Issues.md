@@ -1,4 +1,3 @@
-markdown
 # Known Issues - ISSUE-NNNN
 
 <!-- Confirmed bugs found during this ticket but NOT fixed here, and accepted-by-design gaps.
@@ -7,9 +6,9 @@ markdown
 
      Flat file at the ticket root. Never a subfolder.
 
-     If an issue turns out to affect the system beyond this ticket, also add a one-line pointer
-     to docs/_systems/Known_Landmines.md so the next person finds it without knowing this
-     ticket existed. -->
+     If an issue turns out to affect the system beyond this ticket, also add a one-line pointer to
+     the Limits section of the matching docs/_systems/ doc (for example browser-capture.md), so
+     the next person finds it without knowing this ticket existed. -->
 
 ## 1. <the issue, one line>
 
