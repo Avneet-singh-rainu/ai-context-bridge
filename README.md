@@ -27,4 +27,4 @@ tests/                 Unit and integration tests
 
 ## Current stage
 
-Milestone 0 is done: ADR 0001 picks the stack, the [Electron CDP spike](./spikes/electron-cdp/README.md) proves the capture path, and issue-3 built the first NSIS installer. Milestone 1, the desktop shell, is in progress in issue-3: the app opens with `npm run dev` and builds with `npm run build`. See [DEVELOPMENT.md](./docs/DEVELOPMENT.md) for setup and [ARCHITECTURE.md](./docs/ARCHITECTURE.md) for the check list.
+Milestone 0 is done: ADR 0001 picks the stack, the [Electron CDP spike](./spikes/electron-cdp/README.md) proves the capture path, and issue-3 built the first NSIS installer. Milestone 1, the desktop shell, is in progress in issue-3: the app opens with `npm run dev` and builds with `npm run build`. Milestone 2, screenshot import, is in progress in issue-4. See [DEVELOPMENT.md](./docs/DEVELOPMENT.md) for setup and [ARCHITECTURE.md](./docs/ARCHITECTURE.md) for the check list.
