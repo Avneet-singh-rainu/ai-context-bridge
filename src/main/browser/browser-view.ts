@@ -18,9 +18,9 @@ import { type ChromeSession, launchChrome } from './chrome-launcher';
 import { readCdpPage } from './page-extract';
 
 const MAX_ADDRESS_LENGTH = 4096;
-const FRAME_INTERVAL_MS = 200;
+const FRAME_PAUSE_MS = 150;
 const FRAME_TIMEOUT_MS = 2_000;
-const INPUT_FRAME_INTERVAL_MS = 100;
+const STATE_REFRESH_MS = 100;
 const JPEG_QUALITY = 72;
 
 let ownerWindow: BrowserWindow | null = null;
@@ -40,7 +40,9 @@ let viewport = { width: 0, height: 0 };
 let frameSequence = 0;
 let frameTimer: NodeJS.Timeout | null = null;
 let frameInFlight = false;
-let lastInputFrameAt = 0;
+let frameGeneration = 0;
+let stateRefreshTimer: NodeJS.Timeout | null = null;
+let lastStateJson = '';
 let starting: Promise<boolean> | null = null;
 let disposed = false;
 
@@ -64,7 +66,20 @@ export function sendToApp(channel: string, payload: unknown): void {
 }
 
 function pushState(): void {
-  sendToApp(IPC_CHANNELS.browserState, currentState());
+  const state = currentState();
+  const json = JSON.stringify(state);
+  if (json === lastStateJson) return;
+  lastStateJson = json;
+  sendToApp(IPC_CHANNELS.browserState, state);
+}
+
+/** Batches CDP history reads raised by one navigation into one state update. */
+function scheduleStateRefresh(): void {
+  if (stateRefreshTimer) return;
+  stateRefreshTimer = setTimeout(() => {
+    stateRefreshTimer = null;
+    scheduleStateRefresh();
+  }, STATE_REFRESH_MS);
 }
 
 function setNotice(kind: 'error' | 'info', text: string): void {
@@ -107,11 +122,13 @@ function watchPage(activePage: CdpPage): void {
     currentTitle = '';
     isLoading = false;
     notice = undefined;
-    void refreshHistory().then(pushState);
+    scheduleStateRefresh();
+    scheduleFrame(0);
   });
   activePage.on('Page.navigatedWithinDocument', (params) => {
     if (typeof params.url === 'string' && params.url) currentUrl = params.url;
-    void refreshHistory().then(pushState);
+    scheduleStateRefresh();
+    scheduleFrame(0);
   });
   activePage.on('Page.frameStartedLoading', (params) => {
     if (params.frameId !== mainFrameId) return;
@@ -121,12 +138,12 @@ function watchPage(activePage: CdpPage): void {
   activePage.on('Page.frameStoppedLoading', (params) => {
     if (params.frameId !== mainFrameId) return;
     isLoading = false;
-    void refreshHistory().then(pushState);
+    scheduleStateRefresh();
   });
   activePage.on('Page.loadEventFired', () => {
     isLoading = false;
-    void refreshHistory().then(pushState);
-    void pumpFrame();
+    scheduleStateRefresh();
+    scheduleFrame(0);
   });
   activePage.on('Page.titleChanged', (params) => {
     if (typeof params.title === 'string') currentTitle = params.title;
@@ -134,15 +151,29 @@ function watchPage(activePage: CdpPage): void {
   });
 }
 
-/** Pushes the latest page frame to the renderer. Failures keep the last frame on screen. */
-async function pumpFrame(): Promise<void> {
+/** Schedules one frame after input stops. A later event replaces the pending frame. */
+function scheduleFrame(delayMs = FRAME_PAUSE_MS): void {
+  frameGeneration++;
+  if (frameTimer) clearTimeout(frameTimer);
+  frameTimer = setTimeout(() => {
+    frameTimer = null;
+    void pumpFrame(frameGeneration);
+  }, delayMs);
+}
+
+/** Pushes one page frame to the renderer. A stale frame is dropped if input arrived meanwhile. */
+async function pumpFrame(generation: number): Promise<void> {
   if (!page || !hasPage || !bounds.visible || viewport.width < 1 || viewport.height < 1) return;
-  if (frameInFlight) return;
+  if (frameInFlight) {
+    scheduleFrame(FRAME_PAUSE_MS);
+    return;
+  }
   frameInFlight = true;
   try {
     // A screenshot sent during a navigation or resize can get no CDP reply. Without a timeout
     // frameInFlight stays true and the app never shows the page again.
     const data = await page.screenshot('jpeg', JPEG_QUALITY, FRAME_TIMEOUT_MS);
+    if (generation !== frameGeneration) return;
     const frame: BrowserFrame = {
       data,
       width: viewport.width,
@@ -151,7 +182,7 @@ async function pumpFrame(): Promise<void> {
     };
     sendToApp(IPC_CHANNELS.browserFrame, frame);
   } catch {
-    // Chrome may be busy or closing. The last frame stays visible and the timer retries.
+    // Chrome may be busy or closing. The next input or navigation asks for a new frame.
   } finally {
     frameInFlight = false;
   }
@@ -165,7 +196,7 @@ function applyViewport(): void {
   viewport = { width, height };
   void page
     .setViewport(width, height)
-    .then(() => pumpFrame())
+    .then(() => scheduleFrame())
     .catch(() => undefined);
 }
 
@@ -200,7 +231,6 @@ async function ensurePage(): Promise<boolean> {
           .catch(() => undefined);
         void navigate(target.url);
       });
-      startFrameTimer();
       if (viewport.width > 0 && viewport.height > 0) applyViewport();
       return true;
     } catch (error) {
@@ -215,16 +245,14 @@ async function ensurePage(): Promise<boolean> {
   return starting;
 }
 
-function startFrameTimer(): void {
-  if (frameTimer) return;
-  frameTimer = setInterval(() => void pumpFrame(), FRAME_INTERVAL_MS);
-}
-
 function stopChrome(): void {
-  if (frameTimer) clearInterval(frameTimer);
+  if (frameTimer) clearTimeout(frameTimer);
   frameTimer = null;
   frameInFlight = false;
-  lastInputFrameAt = 0;
+  frameGeneration++;
+  if (stateRefreshTimer) clearTimeout(stateRefreshTimer);
+  stateRefreshTimer = null;
+  lastStateJson = '';
   page?.detach();
   page = null;
   client?.close();
@@ -303,7 +331,7 @@ export function setBounds(next: unknown): void {
     height: Math.max(0, Math.round(bounds.height)),
   };
   if (viewport.width !== previous.width || viewport.height !== previous.height) applyViewport();
-  if (bounds.visible) void pumpFrame();
+  if (bounds.visible) scheduleFrame();
 }
 
 export function getState(): BrowserState {
@@ -345,11 +373,6 @@ export async function input(input: unknown): Promise<void> {
   if (!page || !hasPage) return;
   const event = input as BrowserInput;
   await dispatchInput(page, event);
-  // Mouse moves already run at the frame timer's pace. Capturing one per move makes typing
-  // and clicking feel slow because every capture blocks the next input command.
-  if (event?.type === 'mouseMove') return;
-  const now = Date.now();
-  if (now - lastInputFrameAt < INPUT_FRAME_INTERVAL_MS) return;
-  lastInputFrameAt = now;
-  void pumpFrame();
+  // One screenshot after the user stops typing, scrolling or moving the mouse keeps input fast.
+  scheduleFrame();
 }

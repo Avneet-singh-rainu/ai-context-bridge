@@ -9,7 +9,7 @@
 | `src/main/browser/chrome-launcher.ts` | Find Chrome, launch headless with a persistent profile, read the debugging port, own process lifetime |
 | `src/main/browser/chrome-cdp.ts` | Own the CDP socket, page target, domains, screenshots and isolated-world evaluation |
 | `src/main/browser/chrome-input.ts` | Map mouse, wheel, key and text events to CDP Input commands |
-| `src/main/browser/browser-view.ts` | Replace `WebContentsView` with the Chrome page engine; pump JPEG frames and own page events |
+| `src/main/browser/browser-view.ts` | Replace `WebContentsView` with the Chrome page engine; schedule one JPEG frame after input pauses and own page events |
 | `src/main/browser/network-capture.ts` | Record network through page CDP events instead of `webContents.debugger` |
 | `src/main/browser/page-extract.ts` | Evaluate the extraction script in a CDP isolated world |
 | `src/shared/ipc-contract.ts` | Add frame and input messages to the browser contract |
@@ -18,6 +18,7 @@
 | `tests/unit/chrome-launcher.test.ts` | Cover Chrome discovery, launch arguments and port parsing |
 | `tests/unit/chrome-cdp.test.ts` | Cover the CDP client with a fake socket |
 | `tests/unit/chrome-input.test.ts` | Cover mapping of renderer events to CDP commands |
+| `tests/unit/input-throttle.test.ts` | Cover the 33 ms mouse-move limit |
 
 ## Process Boundaries & IPC
 
@@ -44,16 +45,18 @@
 - **Find Chrome.** Honour an explicit executable path setting first, then standard Windows install
   locations. A missing Chrome returns a clear status message.
 - **Start Chrome.** Launch with `--headless=new`, `--remote-debugging-port=0`, a dedicated user
-  data directory under the app data folder, and a fresh profile lock. Do not strip Chrome's normal
-  identity tokens.
+  data directory under the app data folder, and a fresh profile lock. Delete a stale
+  `DevToolsActivePort` before launch. Keep the sign-in and bot-check flags from the earlier fixes.
 - **Read the endpoint.** Poll `DevToolsActivePort` in the profile directory until Chrome writes a
   valid port, with a timeout. Parse the port and the browser socket path.
 - **Attach the page.** Connect to the browser endpoint, create one target, attach to it with CDP
   flatten sessions, then enable `Page`, `Runtime` and `Network`.
-- **Pump frames.** Set device metrics to the viewport size, request JPEG screenshots, and send each
-  frame to the renderer with a sequence number. Drop stale frames instead of queueing them.
+- **Schedule one frame.** Set device metrics to the viewport size. After mouse, wheel, key,
+  navigation or resize input stops for 150 ms, request one JPEG screenshot and send it to the
+  renderer with a sequence number. A later input event replaces the pending frame. Drop a stale
+  frame if input arrived while the screenshot was in flight.
 - **Forward input.** Map renderer mouse, wheel, key and text events to CDP Input commands. Keep
-  modifier state and focus in the main process.
+  modifier state and focus in the main process. The renderer caps mouse moves at 33 ms.
 - **Navigate.** Use `Page.navigate` for address changes. Treat HTTP and HTTPS the same as today:
   bare hosts get https, local hosts can use http, other text becomes a search, other schemes are
   refused. History commands use CDP navigation history.
@@ -79,10 +82,12 @@
 - Chrome missing: show an install prompt and keep the browser workspace disabled.
 - `DevToolsActivePort` timeout: stop Chrome and show a generic start failure notice.
 - Chrome exits while capture runs: report a page stopped notice and clear the active page.
-- Frame capture fails: keep the last frame and retry. Never show an exception message.
-- Headless sign-in rejected: show the documented fallback message, then use a headed Chrome window
-  layered over the viewport if that path is enabled.
-- Resize or zoom: update device metrics and frame size; stale frames are dropped.
+- Frame capture fails: keep the last frame. The next input or navigation asks for a new frame.
+  Never show an exception message.
+- Headless sign-in rejected: show the documented notice. ADR 0004 keeps one headless engine and does
+  not add a headed fallback.
+- Resize or zoom: update device metrics and schedule one frame after input stops; stale frames are
+  dropped.
 - Popups and new windows: open in the same target, matching today's one-page rule.
 
 ## Verification / Rollout

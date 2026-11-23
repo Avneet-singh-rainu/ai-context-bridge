@@ -301,7 +301,7 @@ export class CdpPage {
 
   private async mainFrameId(): Promise<string> {
     const { frameTree } = await this.send<{ frameTree: { frame: { id: string } } }>(
-      'DOM.getFrameTree',
+      'Page.getFrameTree',
     );
     return frameTree.frame.id;
   }
