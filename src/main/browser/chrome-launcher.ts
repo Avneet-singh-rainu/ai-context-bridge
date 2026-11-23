@@ -56,10 +56,11 @@ export function findChromeExecutable(
   return chromeCandidates(env).find(fileExists) ?? null;
 }
 
-/** Keep Chrome's normal identity tokens; only the debugging and profile flags are added. */
+/** Hide the automation flag that sites read through navigator.webdriver. */
 export function chromeLaunchArgs(profileDir: string): string[] {
   return [
     '--headless=new',
+    '--disable-blink-features=AutomationControlled',
     '--remote-debugging-port=0',
     `--user-data-dir=${profileDir}`,
     '--no-first-run',

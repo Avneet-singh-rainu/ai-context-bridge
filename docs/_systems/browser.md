@@ -33,8 +33,11 @@ in `src/shared/address.ts`. ADR 0002 supersedes ADR 0001's browser-host choice.
   only, never the CDP socket or Chrome's profile.
 - Web pages run in a separate Chrome process with their own profile. Page scripts have no access
   to the app, the preload bridge or Node.
-- Chrome keeps its normal identity tokens. No user-agent spoofing is used, so Google sees a real
-  Chrome browser. The debugging port is bound to loopback and no broad origin flag is added.
+- Chrome runs with `--disable-blink-features=AutomationControlled`, so pages read
+  `navigator.webdriver` as false. The CDP page removes the `Headless` token from Chrome's own user
+  agent before the first navigation. Both changes stop sites such as DuckDuckGo from flagging the
+  page as a bot. The browser remains real Chrome and the debugging port stays on loopback with no
+  broad origin flag.
 - Downloads are denied through `Browser.setDownloadBehavior`. Popups are closed and their address
   opened in the same page, keeping the one-page rule.
 

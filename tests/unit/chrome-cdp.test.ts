@@ -4,6 +4,7 @@ import { CdpClient, type CdpSocket, createCdpPage } from '../../src/main/browser
 class FakeSocket implements CdpSocket {
   readyState: 0 | 1 | 2 | 3 = 0;
   sent: Array<Record<string, unknown>> = [];
+  autoReplies = new Map<string, Record<string, unknown>>();
   onopen: (() => void) | null = null;
   onmessage: ((event: { data: string }) => void) | null = null;
   onclose: (() => void) | null = null;
@@ -15,7 +16,10 @@ class FakeSocket implements CdpSocket {
   }
 
   send(data: string): void {
-    this.sent.push(JSON.parse(data) as Record<string, unknown>);
+    const message = JSON.parse(data) as Record<string, unknown>;
+    this.sent.push(message);
+    const reply = this.autoReplies.get(String(message.method));
+    if (reply) queueMicrotask(() => this.emit({ id: message.id, result: reply }));
   }
 
   close(): void {
@@ -99,68 +103,100 @@ describe('CdpClient', () => {
   });
 });
 
+const PLAIN_UA = 'Mozilla/5.0 Chrome/157.0.0.0 Safari/537.36';
+
+function preparePageReplies(
+  socket: FakeSocket,
+  targetInfos: Array<{ targetId: string; type: string; url: string }>,
+  sessionId: string,
+  userAgent = PLAIN_UA,
+): void {
+  socket.autoReplies.set('Target.getTargets', { targetInfos });
+  socket.autoReplies.set('Target.createTarget', { targetId: 'created-target' });
+  socket.autoReplies.set('Target.attachToTarget', { sessionId });
+  socket.autoReplies.set('Runtime.evaluate', { result: { value: userAgent } });
+  socket.autoReplies.set('Network.setUserAgentOverride', {});
+}
+
 describe('createCdpPage', () => {
   it('reuses Chrome startup blank page instead of creating a second target', async () => {
     const { client, socket } = clientWithSocket();
+    preparePageReplies(
+      socket,
+      [{ targetId: 'startup-1', type: 'page', url: 'about:blank' }],
+      'session-9',
+    );
     socket.open();
-    const creating = createCdpPage(client);
-    socket.reply({
-      targetInfos: [{ targetId: 'startup-1', type: 'page', url: 'about:blank' }],
-    });
-    await Promise.resolve();
-    socket.reply({ sessionId: 'session-9' });
-    const page = await creating;
+    const page = await createCdpPage(client);
 
     expect(page.targetId).toBe('startup-1');
     expect(page.sessionId).toBe('session-9');
     expect(socket.sent.map((message) => message.method)).toEqual([
       'Target.getTargets',
       'Target.attachToTarget',
+      'Runtime.evaluate',
     ]);
     expect(socket.sent[1]).toMatchObject({ params: { targetId: 'startup-1', flatten: true } });
   });
 
   it('creates a target when no blank page exists', async () => {
     const { client, socket } = clientWithSocket();
+    preparePageReplies(socket, [], 'session-10');
     socket.open();
-    const creating = createCdpPage(client);
-    socket.reply({ targetInfos: [] });
-    await Promise.resolve();
-    socket.reply({ targetId: 'target-2' });
-    await Promise.resolve();
-    socket.reply({ sessionId: 'session-10' });
-    const page = await creating;
+    const page = await createCdpPage(client);
 
-    expect(page.targetId).toBe('target-2');
+    expect(page.targetId).toBe('created-target');
     expect(socket.sent.map((message) => message.method)).toEqual([
       'Target.getTargets',
       'Target.createTarget',
       'Target.attachToTarget',
+      'Runtime.evaluate',
     ]);
-    expect(socket.sent[2]).toMatchObject({ params: { targetId: 'target-2', flatten: true } });
+    expect(socket.sent[2]).toMatchObject({ params: { targetId: 'created-target', flatten: true } });
   });
 
   it('ignores non-page and non-blank targets when looking for the startup page', async () => {
     const { client, socket } = clientWithSocket();
-    socket.open();
-    const creating = createCdpPage(client);
-    socket.reply({
-      targetInfos: [
+    preparePageReplies(
+      socket,
+      [
         { targetId: 'worker-1', type: 'service_worker', url: 'about:blank' },
         { targetId: 'web-1', type: 'page', url: 'https://example.com' },
       ],
-    });
-    await Promise.resolve();
-    socket.reply({ targetId: 'target-3' });
-    await Promise.resolve();
-    socket.reply({ sessionId: 'session-11' });
-    const page = await creating;
+      'session-11',
+    );
+    socket.open();
+    const page = await createCdpPage(client);
 
-    expect(page.targetId).toBe('target-3');
+    expect(page.targetId).toBe('created-target');
     expect(socket.sent.map((message) => message.method)).toEqual([
       'Target.getTargets',
       'Target.createTarget',
       'Target.attachToTarget',
+      'Runtime.evaluate',
     ]);
+  });
+
+  it('overrides the user agent to remove the headless token', async () => {
+    const { client, socket } = clientWithSocket();
+    preparePageReplies(
+      socket,
+      [{ targetId: 'startup-2', type: 'page', url: 'about:blank' }],
+      'session-12',
+      'Mozilla/5.0 HeadlessChrome/157.0.0.0 Safari/537.36',
+    );
+    socket.open();
+    await createCdpPage(client);
+
+    expect(socket.sent.map((message) => message.method)).toEqual([
+      'Target.getTargets',
+      'Target.attachToTarget',
+      'Runtime.evaluate',
+      'Network.setUserAgentOverride',
+    ]);
+    expect(socket.sent[3]).toMatchObject({
+      params: { userAgent: 'Mozilla/5.0 Chrome/157.0.0.0 Safari/537.36' },
+      sessionId: 'session-12',
+    });
   });
 });

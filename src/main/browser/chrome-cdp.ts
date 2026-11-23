@@ -305,5 +305,22 @@ export async function createCdpPage(client: CdpClient): Promise<CdpPage> {
     targetId,
     flatten: true,
   });
+
+  // Headless Chrome reports "HeadlessChrome" in its user agent. Sites use that token to flag
+  // automation, so report the same Chrome without the token before the first navigation.
+  const { result } = await client.send<{ result: { value?: string } }>(
+    'Runtime.evaluate',
+    { expression: 'navigator.userAgent', returnByValue: true },
+    sessionId,
+  );
+  const userAgent = result.value ?? '';
+  if (userAgent.includes('Headless')) {
+    await client.send(
+      'Network.setUserAgentOverride',
+      { userAgent: userAgent.replace('Headless', '') },
+      sessionId,
+    );
+  }
+
   return new CdpPage(client, sessionId, targetId);
 }
