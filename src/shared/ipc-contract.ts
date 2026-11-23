@@ -2,6 +2,7 @@
 // The renderer imports types only; it never gets Electron or Node objects.
 
 import type { PageSecurity } from './address';
+import type { PageExtract } from './page-content';
 
 export const IPC_CHANNELS = {
   getAppInfo: 'app:get-info',
@@ -12,6 +13,7 @@ export const IPC_CHANNELS = {
   browserSetBounds: 'browser:set-bounds',
   browserGetState: 'browser:get-state',
   browserCapture: 'browser:capture',
+  browserExtract: 'browser:extract',
   /** Main -> renderer event, sent whenever the browser page changes. */
   browserState: 'browser:state',
 } as const;
@@ -94,6 +96,8 @@ export interface ScreenshotSource {
   capturedAt: string;
 }
 
+export type PageExtractResponse = { ok: true; page: PageExtract } | { ok: false; error: string };
+
 export type CaptureResponse =
   | { ok: true; bytes: Uint8Array; source: ScreenshotSource }
   | { ok: false; error: string };
@@ -110,6 +114,8 @@ export interface BridgeApi {
   browserGetState(): Promise<BrowserState>;
   /** PNG of the visible part of the active page. */
   browserCapture(): Promise<CaptureResponse>;
+  /** Text, headings, tables, and selection of the active page; limited and redacted in main. */
+  browserExtract(): Promise<PageExtractResponse>;
   /** Subscribes to browser state changes; returns a function that unsubscribes. */
   onBrowserState(listener: (state: BrowserState) => void): () => void;
 }

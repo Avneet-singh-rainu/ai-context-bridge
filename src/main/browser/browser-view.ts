@@ -13,7 +13,9 @@ import {
   type CaptureResponse,
   IPC_CHANNELS,
   type NavigateResponse,
+  type PageExtractResponse,
 } from '../../shared/ipc-contract';
+import { readPage } from './page-extract';
 import { plainChromeUserAgent } from './user-agent';
 
 /** Cookies and storage for web pages, kept apart from the app UI's own session. */
@@ -235,6 +237,13 @@ async function grabFrame(contents: WebContents): Promise<Electron.NativeImage | 
 }
 
 /** PNG of the visible part of the active page. */
+/** Text, headings, tables, and selection of the active page. */
+export async function extractPage(): Promise<PageExtractResponse> {
+  const contents = view?.webContents;
+  if (!contents || !hasPage) return { ok: false, error: 'Open a page first.' };
+  return readPage(contents);
+}
+
 export async function capture(): Promise<CaptureResponse> {
   const contents = view?.webContents;
   if (!contents || !hasPage) return { ok: false, error: 'Open a page first.' };

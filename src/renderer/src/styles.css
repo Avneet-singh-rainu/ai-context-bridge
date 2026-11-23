@@ -646,3 +646,58 @@ button:focus-visible {
   color: var(--accent);
   font-weight: 600;
 }
+
+/* Browser pages in Context */
+
+.context-sources {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.page-badge {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--selected);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.page-editor .text-button + .page-remove {
+  margin-left: 0;
+}
+
+.page-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.page-field textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font:
+    13px / 1.45 Consolas,
+    "Cascadia Mono",
+    monospace;
+  resize: vertical;
+}
+
+.workspace .page-warning {
+  max-width: none;
+  margin: 4px 0 0;
+  padding: 6px 10px;
+  border-left: 3px solid #ba7517;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 12px;
+}
