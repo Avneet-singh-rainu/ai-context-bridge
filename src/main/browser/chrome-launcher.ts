@@ -61,6 +61,9 @@ export function chromeLaunchArgs(profileDir: string): string[] {
   return [
     '--headless=new',
     '--disable-blink-features=AutomationControlled',
+    // Google sign-in otherwise opens chrome://signin-dice-web-intercept.top-chrome, which the
+    // app cannot show and which stalls the account sign-in flow.
+    '--disable-features=SigninInterception',
     '--remote-debugging-port=0',
     `--user-data-dir=${profileDir}`,
     '--no-first-run',

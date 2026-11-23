@@ -19,6 +19,8 @@ import { readCdpPage } from './page-extract';
 
 const MAX_ADDRESS_LENGTH = 4096;
 const FRAME_INTERVAL_MS = 200;
+const FRAME_TIMEOUT_MS = 2_000;
+const INPUT_FRAME_INTERVAL_MS = 100;
 const JPEG_QUALITY = 72;
 
 let ownerWindow: BrowserWindow | null = null;
@@ -38,6 +40,7 @@ let viewport = { width: 0, height: 0 };
 let frameSequence = 0;
 let frameTimer: NodeJS.Timeout | null = null;
 let frameInFlight = false;
+let lastInputFrameAt = 0;
 let starting: Promise<boolean> | null = null;
 let disposed = false;
 
@@ -137,7 +140,9 @@ async function pumpFrame(): Promise<void> {
   if (frameInFlight) return;
   frameInFlight = true;
   try {
-    const data = await page.screenshot('jpeg', JPEG_QUALITY);
+    // A screenshot sent during a navigation or resize can get no CDP reply. Without a timeout
+    // frameInFlight stays true and the app never shows the page again.
+    const data = await page.screenshot('jpeg', JPEG_QUALITY, FRAME_TIMEOUT_MS);
     const frame: BrowserFrame = {
       data,
       width: viewport.width,
@@ -218,6 +223,8 @@ function startFrameTimer(): void {
 function stopChrome(): void {
   if (frameTimer) clearInterval(frameTimer);
   frameTimer = null;
+  frameInFlight = false;
+  lastInputFrameAt = 0;
   page?.detach();
   page = null;
   client?.close();
@@ -336,6 +343,13 @@ export async function extractPage(): Promise<PageExtractResponse> {
 
 export async function input(input: unknown): Promise<void> {
   if (!page || !hasPage) return;
-  await dispatchInput(page, input as BrowserInput);
+  const event = input as BrowserInput;
+  await dispatchInput(page, event);
+  // Mouse moves already run at the frame timer's pace. Capturing one per move makes typing
+  // and clicking feel slow because every capture blocks the next input command.
+  if (event?.type === 'mouseMove') return;
+  const now = Date.now();
+  if (now - lastInputFrameAt < INPUT_FRAME_INTERVAL_MS) return;
+  lastInputFrameAt = now;
   void pumpFrame();
 }

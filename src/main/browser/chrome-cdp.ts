@@ -41,7 +41,11 @@ export class CdpClient {
   private readonly socket: CdpSocket;
   private readonly pending = new Map<
     number,
-    { resolve: (value: Params) => void; reject: (error: Error) => void }
+    {
+      resolve: (value: Params) => void;
+      reject: (error: Error) => void;
+      timer?: ReturnType<typeof setTimeout>;
+    }
   >();
   private readonly listeners = new Map<string, Set<EventHandler>>();
   private nextId = 0;
@@ -82,6 +86,7 @@ export class CdpClient {
     method: string,
     params: Params = {},
     sessionId?: string,
+    timeoutMs?: number,
   ): Promise<T> {
     if (this.closed) return Promise.reject(new Error('The Chrome debugging connection is closed.'));
     const id = ++this.nextId;
@@ -89,9 +94,23 @@ export class CdpClient {
     if (sessionId) message.sessionId = sessionId;
 
     return new Promise<T>((resolve, reject) => {
+      const timer =
+        timeoutMs && timeoutMs > 0
+          ? setTimeout(() => {
+              this.pending.delete(id);
+              reject(new Error(`${method} did not reply in time.`));
+            }, timeoutMs)
+          : undefined;
       this.pending.set(id, {
-        resolve: (value) => resolve(value as T),
-        reject,
+        resolve: (value) => {
+          if (timer) clearTimeout(timer);
+          resolve(value as T);
+        },
+        reject: (error) => {
+          if (timer) clearTimeout(timer);
+          reject(error);
+        },
+        timer,
       });
       try {
         this.socket.send(JSON.stringify(message));
@@ -122,7 +141,10 @@ export class CdpClient {
   }
 
   private rejectPending(message: string): void {
-    for (const entry of this.pending.values()) entry.reject(new Error(message));
+    for (const entry of this.pending.values()) {
+      if (entry.timer) clearTimeout(entry.timer);
+      entry.reject(new Error(message));
+    }
     this.pending.clear();
   }
 
@@ -234,13 +256,22 @@ export class CdpPage {
     });
   }
 
-  async screenshot(format: 'jpeg' | 'png' = 'jpeg', quality = 72): Promise<string> {
-    const result = await this.send<{ data: string }>('Page.captureScreenshot', {
-      format,
-      quality: format === 'jpeg' ? quality : undefined,
-      captureBeyondViewport: false,
-      fromSurface: true,
-    });
+  async screenshot(
+    format: 'jpeg' | 'png' = 'jpeg',
+    quality = 72,
+    timeoutMs?: number,
+  ): Promise<string> {
+    const result = await this.client.send<{ data: string }>(
+      'Page.captureScreenshot',
+      {
+        format,
+        quality: format === 'jpeg' ? quality : undefined,
+        captureBeyondViewport: false,
+        fromSurface: true,
+      },
+      this.sessionId,
+      timeoutMs,
+    );
     return result.data;
   }
 
