@@ -1,3 +1,4 @@
+import type { ScreenshotSource } from '../../../../shared/ipc-contract';
 import {
   checkFileBeforeRead,
   checkImageSize,
@@ -13,6 +14,8 @@ export interface Screenshot {
   id: string;
   /** The original file, kept unchanged for OCR in Milestone 3. */
   file: File;
+  /** Set for captures from the built-in browser: the page it was taken from. */
+  source?: ScreenshotSource;
   fileName: string;
   format: ImageFormat;
   mimeType: string;

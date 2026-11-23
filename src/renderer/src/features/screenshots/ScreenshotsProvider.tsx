@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import type { OcrResponse } from '../../../../shared/ipc-contract';
+import type { OcrResponse, ScreenshotSource } from '../../../../shared/ipc-contract';
 import { type ImportResult, importScreenshots, type Screenshot } from './import-screenshots';
 import { needsExtraction, type OcrState, ocrReducer } from './ocr-store';
 import { type ScreenshotListAction, screenshotListReducer } from './screenshot-list';
@@ -18,6 +18,8 @@ interface ScreenshotsContextValue {
   importing: boolean;
   lastImport: ImportResult | null;
   addFiles: (files: readonly File[]) => Promise<void>;
+  /** Adds a browser capture; resolves to null when another import is still running. */
+  addCapture: (file: File, source: ScreenshotSource) => Promise<ImportResult | null>;
   remove: (id: string) => void;
   move: (id: string, toIndex: number) => void;
   /** OCR results by screenshot id. */
@@ -75,19 +77,38 @@ export function ScreenshotsProvider({ children }: { children: ReactNode }) {
   const importingRef = useRef(false);
   const extractingRef = useRef(false);
 
-  const addFiles = useCallback(async (files: readonly File[]) => {
-    if (importingRef.current || files.length === 0) return;
-    importingRef.current = true;
-    setImporting(true);
-    try {
-      const result = await importScreenshots(files, screenshotsRef.current);
-      dispatch({ type: 'add', items: result.added });
-      setLastImport(result);
-    } finally {
-      importingRef.current = false;
-      setImporting(false);
-    }
-  }, []);
+  /** One import at a time; every file goes through the same checks, captures included. */
+  const runImport = useCallback(
+    async (files: readonly File[], source?: ScreenshotSource): Promise<ImportResult | null> => {
+      if (importingRef.current || files.length === 0) return null;
+      importingRef.current = true;
+      setImporting(true);
+      try {
+        const result = await importScreenshots(files, screenshotsRef.current);
+        const added = source ? result.added.map((shot) => ({ ...shot, source })) : result.added;
+        dispatch({ type: 'add', items: added });
+        const final = { ...result, added };
+        setLastImport(final);
+        return final;
+      } finally {
+        importingRef.current = false;
+        setImporting(false);
+      }
+    },
+    [],
+  );
+
+  const addFiles = useCallback(
+    async (files: readonly File[]) => {
+      await runImport(files);
+    },
+    [runImport],
+  );
+
+  const addCapture = useCallback(
+    (file: File, source: ScreenshotSource) => runImport([file], source),
+    [runImport],
+  );
 
   /** Runs OCR on each screenshot without text, one at a time, in list order. */
   const extractText = useCallback(async () => {
@@ -138,6 +159,7 @@ export function ScreenshotsProvider({ children }: { children: ReactNode }) {
       importing,
       lastImport,
       addFiles,
+      addCapture,
       remove,
       move,
       ocr,
@@ -152,6 +174,7 @@ export function ScreenshotsProvider({ children }: { children: ReactNode }) {
       importing,
       lastImport,
       addFiles,
+      addCapture,
       remove,
       move,
       ocr,

@@ -25,9 +25,13 @@ electron-vite builds each part into `out/main/`, `out/preload/`, and `out/render
 - Main treats every IPC payload as untrusted. Payload checks live in `src/main/ipc-requests.ts`
   and have unit tests. Main never opens a file path that the renderer sends; the renderer sends
   bytes, and file paths come only from a dialog the user answers.
-- Channels today: `app:get-info` (issue-3), `ocr:recognize` and `context:save` (issue-5).
-- Pure code used by both main and renderer lives in `src/shared/` (the IPC contract and
-  `image-format.ts`).
+- Channels today: `app:get-info` (issue-3), `ocr:recognize` and `context:save` (issue-5), and
+  the `browser:*` channels (issue-6, see [Browser](./browser.md)). `browser:state` is the only
+  main-to-renderer event; the preload wraps it so the renderer never sees the IPC event object.
+- The window holds a second web contents: the built-in browser's `WebContentsView`, drawn on top
+  of the app page, with no preload and its own session.
+- Pure code used by both main and renderer lives in `src/shared/` (the IPC contract,
+  `image-format.ts`, and `address.ts`).
 - The app window denies new windows and blocks navigation away from its own page.
 - `src/renderer/index.html` sets a Content Security Policy that allows scripts from the app only.
   Images may come from the app or `data:` URLs; `fetch` and other connections fall back to

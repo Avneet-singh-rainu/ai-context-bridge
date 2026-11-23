@@ -1,7 +1,8 @@
 // Builds the Markdown context package. Pure function, so Vitest can test it in Node.
 
+import { pageUrlForExport } from '../../../../shared/address';
 import type { ImageFormat } from '../../../../shared/image-format';
-import { OCR_ENGINE_LABELS } from '../../../../shared/ipc-contract';
+import { OCR_ENGINE_LABELS, type ScreenshotSource } from '../../../../shared/ipc-contract';
 import type { OcrEntry } from '../screenshots/ocr-store';
 
 export interface PackageScreenshot {
@@ -10,6 +11,16 @@ export interface PackageScreenshot {
   width: number;
   height: number;
   ocr?: OcrEntry;
+  /** Set for browser captures: the page the screenshot was taken from. */
+  source?: ScreenshotSource;
+}
+
+/** "Title (origin/path)" without the query string, or whichever part exists. */
+function sourcePage(source: ScreenshotSource): string {
+  const url = pageUrlForExport(source.url);
+  const title = source.title.trim();
+  if (title && url && title !== source.url) return `${title} (${url})`;
+  return url || title;
 }
 
 const FORMAT_LABELS: Record<ImageFormat, string> = { png: 'PNG', jpeg: 'JPG', webp: 'WEBP' };
@@ -97,6 +108,7 @@ export function buildContextMarkdown(
       `### Screenshot ${index + 1}: ${shot.fileName}`,
       '',
       `- Image: ${shot.width} x ${shot.height} ${FORMAT_LABELS[shot.format]}`,
+      ...(shot.source ? [`- Source page: ${sourcePage(shot.source)}`] : []),
       `- Text source: ${textSource(shot.ocr)}`,
       '',
     );
@@ -127,9 +139,11 @@ export function buildContextMarkdown(
       shot.ocr?.status === 'done' && shot.ocr.engine
         ? `, text by ${OCR_ENGINE_LABELS[shot.ocr.engine]}`
         : '';
+    const pageUrl = shot.source ? pageUrlForExport(shot.source.url) : '';
+    const from = pageUrl ? `, captured from ${pageUrl}` : '';
     lines.push(
       `- Screenshot ${index + 1}: ${shot.fileName}, ${shot.width} x ${shot.height} ` +
-        `${FORMAT_LABELS[shot.format]}${engine}`,
+        `${FORMAT_LABELS[shot.format]}${engine}${from}`,
     );
   });
 

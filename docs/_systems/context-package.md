@@ -10,12 +10,17 @@ Facts about the Markdown export that stay true after issue-5 closes. The builder
 2. `## Capture information` - created date and time (local), screenshot count, which OCR engines
    ran, and "No AI service was used."
 3. `## Screenshots` - one `### Screenshot N: <file name>` per screenshot, in list order, with the
-   image size and format, the text source, and the text in a fenced `text` block.
+   image size and format, the source page for browser captures, the text source, and the text in
+   a fenced `text` block.
 4. `## Missing or uncertain information` - always says that OCR text can contain recognition
    errors and that visual details are not described; then one line per screenshot with no text.
-5. `## Source references` - one line per screenshot: file name, size, format, and engine.
+5. `## Source references` - one line per screenshot: file name, size, format, engine, and the
+   page it was captured from.
 
 ## Rules
+
+- Page URLs appear as origin and path only (`pageUrlForExport`). The query string and fragment
+  are removed, because they often carry tokens, emails, or ids.
 
 - A screenshot is never dropped. No text found, not extracted yet, extraction failed, and text
   removed by the user each get their own line in the screenshot section and in the missing list.

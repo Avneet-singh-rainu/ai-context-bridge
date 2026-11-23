@@ -96,6 +96,24 @@ describe('buildContextMarkdown', () => {
     const markdown = buildContextMarkdown([shot('a.png', done('run ```npm test```'))], createdAt);
     expect(markdown).toContain('````text\nrun ```npm test```\n````');
   });
+
+  it('names the source page of a browser capture without its query string', () => {
+    const captured: PackageScreenshot = {
+      ...shot('page-shop.example.png', done('Order 7')),
+      source: {
+        title: 'Your orders',
+        url: 'https://shop.example/orders?id=7&token=abc',
+        capturedAt: '2026-11-23T06:15:00.000Z',
+      },
+    };
+    const markdown = buildContextMarkdown([captured], createdAt);
+    expect(markdown).toContain('- Source page: Your orders (https://shop.example/orders)');
+    expect(markdown).not.toContain('token=abc');
+    expect(markdown).toContain(
+      '- Screenshot 1: page-shop.example.png, 1920 x 1080 PNG, text by Windows OCR, ' +
+        'captured from https://shop.example/orders',
+    );
+  });
 });
 
 describe('suggestedFileName', () => {

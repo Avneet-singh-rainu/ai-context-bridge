@@ -1,3 +1,4 @@
+import { pageUrlForExport } from '../../../../shared/address';
 import { formatBytes, type ImageFormat } from './image-validation';
 import type { Screenshot } from './import-screenshots';
 import { describeOcr } from './ocr-status';
@@ -22,8 +23,9 @@ export function ScreenshotCard({
   onMove,
   onRemove,
 }: ScreenshotCardProps) {
-  const { id, fileName, format, sizeBytes, width, height, thumbnailUrl } = screenshot;
+  const { id, fileName, format, sizeBytes, width, height, thumbnailUrl, source } = screenshot;
   const position = index + 1;
+  const sourceUrl = source ? pageUrlForExport(source.url) : '';
 
   return (
     <li className="shot-card">
@@ -39,6 +41,11 @@ export function ScreenshotCard({
       <p className="shot-meta">
         {width} x {height} - {formatBytes(sizeBytes)} - {FORMAT_LABELS[format]}
       </p>
+      {sourceUrl && (
+        <p className="shot-source" title={sourceUrl}>
+          Captured from {new URL(sourceUrl).host}
+        </p>
+      )}
       <p className="shot-ocr" data-status={ocr?.status ?? 'none'} title={ocr?.error}>
         {describeOcr(ocr)}
       </p>

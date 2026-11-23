@@ -1,10 +1,19 @@
 // IPC contract shared by the main process, the preload script and the renderer.
 // The renderer imports types only; it never gets Electron or Node objects.
 
+import type { PageSecurity } from './address';
+
 export const IPC_CHANNELS = {
   getAppInfo: 'app:get-info',
   recognizeText: 'ocr:recognize',
   saveContextPackage: 'context:save',
+  browserNavigate: 'browser:navigate',
+  browserCommand: 'browser:command',
+  browserSetBounds: 'browser:set-bounds',
+  browserGetState: 'browser:get-state',
+  browserCapture: 'browser:capture',
+  /** Main -> renderer event, sent whenever the browser page changes. */
+  browserState: 'browser:state',
 } as const;
 
 export interface AppInfo {
@@ -50,9 +59,57 @@ export type SaveContextResponse =
   | { saved: true; filePath: string }
   | { saved: false; error?: string };
 
+/** The state of the built-in browser's single page, pushed by main on every change. */
+export interface BrowserState {
+  /** False until the user opens the first page; the browser view stays hidden until then. */
+  hasPage: boolean;
+  url: string;
+  title: string;
+  isLoading: boolean;
+  canGoBack: boolean;
+  canGoForward: boolean;
+  security: PageSecurity;
+  /** The latest notice: a failed load, a blocked link, a blocked download or permission. */
+  notice?: { kind: 'error' | 'info'; text: string };
+}
+
+export type BrowserCommand = 'back' | 'forward' | 'reload' | 'stop';
+
+/** Where the renderer wants the browser view, in CSS pixels of the app window. */
+export interface BrowserBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  visible: boolean;
+}
+
+export type NavigateResponse = { ok: true; url: string } | { ok: false; error: string };
+
+/** Where a browser capture came from; kept with the screenshot for the context package. */
+export interface ScreenshotSource {
+  url: string;
+  title: string;
+  /** ISO 8601 time of the capture. */
+  capturedAt: string;
+}
+
+export type CaptureResponse =
+  | { ok: true; bytes: Uint8Array; source: ScreenshotSource }
+  | { ok: false; error: string };
+
 /** The API the preload script exposes to the renderer as `window.bridge`. */
 export interface BridgeApi {
   getAppInfo(): Promise<AppInfo>;
   recognizeText(request: OcrRequest): Promise<OcrResponse>;
   saveContextPackage(request: SaveContextRequest): Promise<SaveContextResponse>;
+  /** Opens address bar text: a URL, a bare host, or a DuckDuckGo search. */
+  browserNavigate(input: string): Promise<NavigateResponse>;
+  browserCommand(command: BrowserCommand): Promise<void>;
+  browserSetBounds(bounds: BrowserBounds): void;
+  browserGetState(): Promise<BrowserState>;
+  /** PNG of the visible part of the active page. */
+  browserCapture(): Promise<CaptureResponse>;
+  /** Subscribes to browser state changes; returns a function that unsubscribes. */
+  onBrowserState(listener: (state: BrowserState) => void): () => void;
 }

@@ -4,7 +4,9 @@ Facts that stay true after issue-2 closes. The Electron CDP spike in `spikes/ele
 
 ## Capture path
 
-- Electron owns the built-in browser as a normal `BrowserWindow`.
+- The spike used a normal `BrowserWindow`. The app's built-in browser is a `WebContentsView`
+  inside the app window (see [Browser](./browser.md)); the CDP steps below apply to that view's
+  `webContents` the same way.
 - `webContents.debugger.attach('1.3')` opens the Chrome DevTools Protocol (CDP) channel. CDP is Chrome's event and command interface.
 - `Network.enable` starts the CDP Network domain. Send the command before navigation and wait at most one second for the promise. An unbounded `await` before navigation can hang, so the spike uses a bounded race.
 - `Network.requestWillBeSent` records request ID, URL, method and request type.
