@@ -2,7 +2,8 @@
 
 ## 1. Network and tooltip sources are not there yet
 
-**Status:** Accepted gap - pending M6 (issue #8) and hover capture
+**Status:** Network part fixed in [issue-8](../issue-8-network-capture/Design.md) on 2026-11-23;
+tooltips still pending hover capture
 
 **Found:** 2026-11-23
 

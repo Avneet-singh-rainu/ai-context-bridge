@@ -9,6 +9,7 @@ import {
 import { useMemo, useState } from 'react';
 import { hideEmails, redactSecrets } from '../../../../shared/redact';
 import { Toolbar } from '../../components/Toolbar';
+import { useNetwork } from '../capture/NetworkProvider';
 import { renderContextPackage, suggestedFileName } from '../export/context-markdown';
 import { ExtractTextButton } from '../screenshots/ExtractTextButton';
 import { needsExtraction } from '../screenshots/ocr-store';
@@ -37,6 +38,7 @@ const withoutTimestamp = (text: string) => text.replace(/^- Created: .*$/m, '');
 export function ContextWorkspace() {
   const { screenshots, ocr } = useScreenshots();
   const { pages } = usePageContent();
+  const { network, textOf } = useNetwork();
   const { review, setMode, setHideEmails, startEdit, editPackage, discardEdit } =
     useContextReview();
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -59,9 +61,15 @@ export function ContextWorkspace() {
           originalMarkdown: page.extract.markdown,
           stats: page.extract.stats,
         })),
+        network: network.entries.map((entry) => ({
+          ...entry,
+          text: textOf(entry),
+          originalText: entry.text,
+        })),
         excluded: review.excluded,
+        optedIn: review.optedIn,
       }),
-    [review.notes, review.excluded, screenshots, ocr, pages],
+    [review.notes, review.excluded, review.optedIn, screenshots, ocr, pages, network, textOf],
   );
 
   const rendered = useMemo(

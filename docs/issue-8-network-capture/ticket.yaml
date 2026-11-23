@@ -1,6 +1,6 @@
 ticket: issue-8
 title: "[M6] Capture network requests and permitted response bodies"
-status: Design only
+status: In Progress
 blocked_reason:
 tier: 2
 systems: [browser-capture, browser, context-package]

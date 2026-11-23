@@ -17,9 +17,12 @@ const TOKEN_PATTERNS: readonly RegExp[] = [
 
 const PRIVATE_KEY = /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g;
 const BEARER = /\b(Bearer\s+)[A-Za-z0-9._~+/-]{20,}=*/g;
-/** "label: value" or "label=value": keep the label, hide a value of 8 or more characters. */
+/**
+ * "label: value", "label=value", or JSON's "label": "value": keep the label, hide a value of 8 or
+ * more characters. The optional quote after the label covers JSON keys.
+ */
 const LABELLED =
-  /\b(api[_-]?key|client[_-]?secret|access[_-]?token|auth[_-]?token|secret|token|password|passwd|pwd)(\s*[:=]\s*)(["']?)([^\s"'<>]{8,})\3/gi;
+  /\b(api[_-]?key|client[_-]?secret|access[_-]?token|auth[_-]?token|secret|token|password|passwd|pwd)(["']?\s*[:=]\s*)(["']?)([^\s"'<>]{8,})\3/gi;
 
 export function redactSecrets(input: string): { text: string; count: number } {
   let count = 0;

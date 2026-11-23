@@ -2,6 +2,7 @@
 // The renderer imports types only; it never gets Electron or Node objects.
 
 import type { PageSecurity } from './address';
+import type { NetworkState } from './network';
 import type { PageExtract } from './page-content';
 
 export const IPC_CHANNELS = {
@@ -14,6 +15,13 @@ export const IPC_CHANNELS = {
   browserGetState: 'browser:get-state',
   browserCapture: 'browser:capture',
   browserExtract: 'browser:extract',
+  networkStart: 'network:start',
+  networkStop: 'network:stop',
+  networkClear: 'network:clear',
+  networkRemove: 'network:remove',
+  networkGetState: 'network:get-state',
+  /** Main -> renderer event, sent while recording and after every change. */
+  networkState: 'network:state',
   /** Main -> renderer event, sent whenever the browser page changes. */
   browserState: 'browser:state',
 } as const;
@@ -120,4 +128,12 @@ export interface BridgeApi {
   browserExtract(): Promise<PageExtractResponse>;
   /** Subscribes to browser state changes; returns a function that unsubscribes. */
   onBrowserState(listener: (state: BrowserState) => void): () => void;
+  /** Starts recording the active page's API responses. */
+  networkStart(): Promise<{ ok: true } | { ok: false; error: string }>;
+  networkStop(): Promise<void>;
+  /** Removes every kept response. */
+  networkClear(): Promise<void>;
+  networkRemove(id: string): Promise<void>;
+  networkGetState(): Promise<NetworkState>;
+  onNetworkState(listener: (state: NetworkState) => void): () => void;
 }

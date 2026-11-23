@@ -38,7 +38,8 @@ Electron 45 hosts the app and the built-in browser; React 19 and TypeScript 7 re
 electron-vite builds it and electron-builder packages an NSIS installer for Windows x64. The
 handoff's Tauri and WebView2 plan was replaced after the feasibility check; see
 [ADR 0001](./decisions/0001-stack-selection.md). The feasibility spike proved the network capture
-path, response bodies, DOM extraction, and isolation ([browser capture](./_systems/browser-capture.md)).
+path, response bodies, DOM extraction, and isolation; network recording now uses that path
+([browser capture](./_systems/browser-capture.md)).
 
 ## System context
 
@@ -74,12 +75,13 @@ flowchart TB
     shell[Window and app shell]
     browserctl[Browser controller]
     extract[Page extractor checks and redaction]
+    netrec[Network recorder: filter, merge, prune, redact]
     ocrsvc[OCR service]
     save[Save dialog and file writer]
   end
   subgraph renderer["App UI renderer (sandboxed, no Node)"]
     ui[Views: Browser, Screenshots, Context]
-    stores[Screenshot, page, and review stores]
+    stores[Screenshot, page, network, and review stores]
     builder[Package builder and privacy clean-up]
   end
   subgraph view["Browser view (untrusted web pages, own session, no preload)"]
@@ -92,6 +94,7 @@ flowchart TB
   ui <-->|typed IPC through the preload bridge| main
   browserctl --> view
   iso -->|plain data| extract
+  netrec -->|CDP debugger, only while recording| view
   ocrsvc --> ps
   ocrsvc -.->|fallback| tess
 ```
@@ -102,6 +105,7 @@ flowchart TB
 | App UI | Context isolation, sandbox, no Node, no webview tag; a Content Security Policy allows only the app's own scripts. |
 | Browser view | Web pages get no preload and no bridge, run in their own persistent session, load only http and https, and cannot open windows, download files, or get permissions. |
 | Extraction script | Runs in an isolated world, so page scripts cannot change what it reads; its output is checked again in main. |
+| Network recorder | The debugger is attached only during a session the user starts; headers, cookies, request bodies, and query values are never stored; bodies are pruned and redacted in main before the renderer gets them. |
 | OCR helpers | Windows OCR runs in a short-lived PowerShell process on a temporary copy that is deleted afterwards; Tesseract runs in a worker thread with a bundled model and no network. |
 
 Details: [app shell](./_systems/app-shell.md), [browser](./_systems/browser.md).
@@ -113,10 +117,12 @@ Details: [app shell](./_systems/app-shell.md), [browser](./_systems/browser.md).
 | Window and app shell | Main | Window with hidden title bar and caption button overlay, Mica, app icon, IPC registration | [app-shell](./_systems/app-shell.md), [ui-design](./_systems/ui-design.md) |
 | Browser controller | Main | One browser view per window, address rules, navigation, page state events, page capture | [browser](./_systems/browser.md) |
 | Page extractor | Browser view, then main | Reads headings, text, lists, tables, and selection; main limits, renders Markdown, and redacts | [page-content](./_systems/page-content.md) |
+| Network recorder | Main | CDP session on the browser view; keeps API responses, merges by endpoint, prunes, redacts | [browser-capture](./_systems/browser-capture.md) |
 | OCR service | Main | One job at a time; Windows OCR first, Tesseract fallback | [ocr](./_systems/ocr.md) |
 | Save service | Main | Save dialog in Documents and file write | [context-package](./_systems/context-package.md) |
 | Screenshot store | Renderer | Import checks, thumbnails, order, OCR text by screenshot | [screenshots](./_systems/screenshots.md) |
 | Page store | Renderer | Extracted pages with editable text | [page-content](./_systems/page-content.md) |
+| Network store | Renderer | Mirror of the recorder state, with the user's edits to kept text | [browser-capture](./_systems/browser-capture.md) |
 | Context review | Renderer | Unified item list, include and exclude, notes, export mode, edited package | [context-package](./_systems/context-package.md) |
 | Package builder | Renderer | Detailed and compact Markdown, provenance, redaction, email hiding, privacy report | [context-package](./_systems/context-package.md) |
 | UI shell and design system | Renderer | Sidebar, toolbars, controls, light and dark themes | [ui-design](./_systems/ui-design.md) |
@@ -131,6 +137,8 @@ flowchart LR
   shots -->|image bytes| ocr[OCR service]
   ocr -->|text| shots
   page[Active page] --> script[Isolated extraction] --> clean[Limits and redaction in main] --> pagestore[Page store]
+  page -->|API calls while recording| rec[Filter, merge, prune, redact in main] --> netstore[Network store]
+  netstore -->|left out until switched on| items
   notes[User notes] --> items
   shots --> items[Unified context items]
   pagestore --> items
@@ -146,9 +154,12 @@ flowchart LR
    on a temporary copy, falls back to Tesseract when Windows OCR fails, and returns the text.
 3. **Page content:** an isolated-world script reads the rendered main content; main checks the
    result, applies the limits, renders Markdown, and redacts secrets before the renderer sees it.
-4. **Review:** every source becomes a context item with an include switch; the user edits text,
-   adds notes, and leaves items out.
-5. **Export:** the package builder redacts secrets in every source, hides email addresses by
+4. **Network:** while the user records, main keeps API responses with JSON or text bodies,
+   merges repeated calls, prunes each body to its shape (at most 8,000 characters), and redacts
+   secrets before the renderer sees them.
+5. **Review:** every source becomes a context item with an include switch; the user edits text,
+   adds notes, and leaves items out. Network responses start left out.
+6. **Export:** the package builder redacts secrets in every source, hides email addresses by
    default, strips query strings from links, fences page text as data, and lays out the detailed
    or compact package; edited package text is redacted again on copy and save.
 
@@ -157,6 +168,7 @@ flowchart LR
 | Data | Where | Lifetime |
 |---|---|---|
 | Screenshots, OCR text, pages, notes, review choices | Renderer memory | Until the app closes |
+| Recorded network responses (pruned and redacted) | Main memory, mirrored in the renderer | Until removed, cleared, or the app closes |
 | Images being read by Windows OCR | A private temporary folder | Deleted after each job |
 | Browser cookies and site storage | The browser view's persistent session in the app's user data | Until the user clears them (a clear action is planned) |
 | Saved packages | Where the user saves them | The user's files |
@@ -165,8 +177,9 @@ flowchart LR
 
 The rules in [PRIVACY.md](./PRIVACY.md) map onto the design like this:
 
-- **Explicit action:** nothing is collected until the user imports, captures, or extracts; network
-  capture will need an explicit start and stop with a visible indicator.
+- **Explicit action:** nothing is collected until the user imports, captures, extracts, or
+  records; network recording has an explicit start and stop and a visible indicator in the
+  toolbar, page strip, and sidebar footer.
 - **Active page only:** one browser view, popups open in the same view, and only it is read.
 - **Secrets never exported:** page text is redacted in main at extraction; the package builder
   redacts every source at export, and edited text again on copy and save; links lose their
@@ -179,7 +192,7 @@ The rules in [PRIVACY.md](./PRIVACY.md) map onto the design like this:
 
 | Area | Design |
 |---|---|
-| Size | 20 screenshots of up to 20 MB and 50 megapixels; 10 pages of up to 50,000 characters each; selection up to 10,000 characters |
+| Size | 20 screenshots of up to 20 MB and 50 megapixels; 10 pages of up to 50,000 characters each; selection up to 10,000 characters; 200 network endpoints, bodies read up to 1 MB and kept up to 8,000 characters |
 | Responsiveness | OCR runs one image at a time (about 1 second of start-up per Windows OCR call); page extraction stops after 40,000 elements |
 | Reliability | Tesseract fallback for OCR; page capture retries when Chromium has no frame yet; one failed item never blocks the others |
 | Accessibility | Keyboard reachable actions, labelled switches and buttons, focus rings, reduced motion |
@@ -195,7 +208,6 @@ Windows 11 22H2 and later; older Windows gets an opaque sidebar.
 
 | Part | Design | Notes |
 |---|---|---|
-| Network capture | [issue-8 design](./issue-8-network-capture/Design.md) | Explicit session, JSON and text only, merged duplicates, pruned bodies, responses left out by default |
 | Package size budget | [issue-9 Known Issue 4](./issue-9-context-review/Known_Issues.md) | Target picker, meter, per-item sizes, Fit to budget |
 | Clear browsing data | Architecture pick for the browser session | One action to sign out of every site and wipe the browser's cookies and storage |
 | Tooltip capture | Handoff, later | Reserved source type in the context model |
