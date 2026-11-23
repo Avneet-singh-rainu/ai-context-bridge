@@ -4,10 +4,11 @@
 
 import type { ImageFormat } from '../../../../shared/image-format';
 import type { ScreenshotSource } from '../../../../shared/ipc-contract';
+import type { NetworkEntry } from '../../../../shared/network';
 import type { PageStats } from '../../../../shared/page-content';
 import type { OcrEntry } from '../screenshots/ocr-store';
 
-/** Every kind of source. `network` (M6) and `tooltip` (hover capture) have no items yet. */
+/** Every kind of source. `tooltip` (hover capture) has no items yet. */
 export type ContextSource = 'note' | 'screenshot' | 'page' | 'network' | 'tooltip';
 
 export const SOURCE_ORDER: readonly ContextSource[] = [
@@ -54,6 +55,19 @@ export interface PackagePage {
   stats: PageStats;
 }
 
+/** A recorded API response after the user's review; `originalText` is what main kept. */
+export interface PackageNetwork extends Omit<NetworkEntry, 'id'> {
+  originalText: string;
+}
+
+/** Sources whose items start left out: the user switches each one on. */
+export const OPT_IN_SOURCES: readonly ContextSource[] = ['network'];
+
+/** True for ids of items that start left out (network responses). */
+export function isOptInId(id: string): boolean {
+  return OPT_IN_SOURCES.some((source) => id.startsWith(`${source}:`));
+}
+
 interface ItemBase {
   /** `<source>:<id in its store>`, unique across all sources. */
   id: string;
@@ -63,19 +77,28 @@ interface ItemBase {
 export type ContextItem =
   | (ItemBase & { source: 'note'; note: UserNote })
   | (ItemBase & { source: 'screenshot'; screenshot: PackageScreenshot })
-  | (ItemBase & { source: 'page'; page: PackagePage });
+  | (ItemBase & { source: 'page'; page: PackagePage })
+  | (ItemBase & { source: 'network'; network: PackageNetwork });
 
 export interface ContextSources {
   notes: readonly UserNote[];
   screenshots: readonly (PackageScreenshot & { id: string })[];
   pages: readonly (PackagePage & { id: string })[];
+  network?: readonly (PackageNetwork & { id: string })[];
   /** Item ids the user left out of the package. */
   excluded: Readonly<Record<string, true>>;
+  /** Ids of opt-in items (network responses) the user switched on. */
+  optedIn?: Readonly<Record<string, true>>;
 }
 
-/** One ordered list: notes, then screenshots, then pages, each in its own store's order. */
+/**
+ * One ordered list: notes, screenshots, pages, then network responses, each in its own store's
+ * order. Network responses are included only when switched on; everything else unless left out.
+ */
 export function collectContextItems(sources: ContextSources): ContextItem[] {
-  const included = (id: string) => sources.excluded[id] !== true;
+  const optedIn = sources.optedIn ?? {};
+  const included = (id: string) =>
+    isOptInId(id) ? optedIn[id] === true : sources.excluded[id] !== true;
   return [
     ...sources.notes.map((note): ContextItem => {
       const id = `note:${note.id}`;
@@ -88,6 +111,10 @@ export function collectContextItems(sources: ContextSources): ContextItem[] {
     ...sources.pages.map(({ id: storeId, ...page }): ContextItem => {
       const id = `page:${storeId}`;
       return { id, source: 'page', included: included(id), page };
+    }),
+    ...(sources.network ?? []).map(({ id: storeId, ...network }): ContextItem => {
+      const id = `network:${storeId}`;
+      return { id, source: 'network', included: included(id), network };
     }),
   ];
 }

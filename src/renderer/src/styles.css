@@ -546,6 +546,11 @@ html[data-material="mica"] .sidebar {
   color: var(--text);
 }
 
+.status-network[data-recording="true"] .status-dot {
+  background: var(--red);
+  animation: pulse 0.9s var(--ease) infinite alternate;
+}
+
 .footer-version {
   color: var(--text-3);
   font-size: 11px;
@@ -877,6 +882,63 @@ html[data-material="mica"] .sidebar {
 .browser-notice {
   flex-shrink: 0;
   margin: 8px 12px 0;
+}
+
+/* Network recording: the toolbar button, the page-strip state, and the review boxes. */
+.record-btn.is-recording {
+  color: var(--red);
+}
+
+.recording-state {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  color: var(--text-2);
+}
+
+.recording-state[data-recording="true"] {
+  color: var(--red);
+  font-weight: 500;
+}
+
+.recording-state + .capture-state {
+  margin-left: 14px;
+}
+
+.rec-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--red);
+  animation: pulse 0.9s var(--ease) infinite alternate;
+}
+
+.banner-close {
+  align-self: center;
+  width: 24px;
+  height: 24px;
+  margin: -2px -4px -2px 0;
+}
+
+.http-method,
+.http-status {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.http-method {
+  color: var(--accent);
+}
+
+.http-status {
+  color: var(--green);
+}
+
+.http-status[data-ok="false"] {
+  color: var(--red);
 }
 
 .browser-viewport {

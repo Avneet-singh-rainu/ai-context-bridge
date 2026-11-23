@@ -49,6 +49,9 @@ bounds (finite numbers).
   the active host and title on every view.
 - The capture state (idle, capturing or reading, added, failed) shows in the Browser view's strip
   and in the sidebar footer. See [UI design](./ui-design.md).
+- While network recording runs, the Record network button turns red and reads Stop (N), the
+  strip shows "Recording · N endpoints", and the sidebar footer shows a network line. After a
+  session, the strip says how many endpoints wait for review in Context.
 
 ## Capture
 
@@ -63,6 +66,11 @@ same import checks, with its source page (URL, title, time) attached. See
 
 **Extract page text** reads the active page's text, headings, tables, and selected text into
 Context, with limits and secret redaction. See [Page content](./page-content.md).
+
+## Record network
+
+**Record network** records the page's API calls (fetch and XHR) with JSON or text bodies, pruned
+and redacted in main, for review in Context. See [Browser capture](./browser-capture.md).
 
 ## Limits
 

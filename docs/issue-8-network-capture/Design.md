@@ -5,64 +5,75 @@
 **Related:** [issue-2](../issue-2-electron-feasibility/Design.md) (spike that proved the capture
 path), [issue-9](../issue-9-context-review/Design.md) (review and export this feeds)
 
-This is a design written before any code. Nothing here is built yet.
-
 ## Context / Problem
 
 A page often loads its real data through API calls rather than the HTML. Opening one page can
 fire 20 or more requests, and some responses are megabytes of JSON. Pasting raw responses into
 the package would overflow a free AI chat ("input is too long") and could leak tokens or personal
-data. The capture has to collect what is useful from the active page and keep the package small
+data. The recorder has to collect what is useful from the active page and keep the package small
 and safe.
 
 ## Design
 
-### Capture session
+### Recording session
 
-- Capture starts only when the user clicks Start capture on the active browser page and stops on
-  Stop capture or navigation away; the capture indicator stays visible the whole time
-  (docs/PRIVACY.md).
-- The Chrome DevTools Protocol path proved in the spike is used on the browser view: request and
-  response events, then the response body after loading finishes.
-- Only the active page's own requests are observed.
+- **Record network** in the Browser toolbar starts a session on the active page. The page is not
+  reloaded automatically; a notice says "Reload the page to include requests made while it
+  loads" and carries a Reload button.
+- While recording, the button turns red and reads **Stop (N)** with the number of endpoints kept;
+  the page strip shows "Recording · N endpoints" with a pulsing dot, and the sidebar footer shows
+  a network line on every view (docs/PRIVACY.md: visible indicator).
+- The session ends on Stop, on navigation to another origin (notice: "Recording stopped: the page
+  moved to another site."), or when the debugger detaches (error notice). Kept responses stay
+  until the user removes them or uses Clear all.
+- Main attaches the Chrome DevTools Protocol debugger to the browser view's `webContents` only
+  while recording and detaches it when the session ends
+  ([browser-capture](../_systems/browser-capture.md)).
 
 ### What is kept
 
-- Only JSON and text responses (`application/json`, `+json`, `text/plain`, `text/csv`). Images,
-  fonts, scripts, styles, media, and binary bodies are recorded as one summary line at most.
-- Request bodies are never kept (docs/PRIVACY.md). Cookies and authorization headers are never
-  stored; other headers pass through secret redaction first.
-- Repeated calls to the same method and endpoint (query values removed) are merged into one entry
-  with a call count; identical bodies are stored once.
+- Only requests of type XHR, Fetch, or Other whose response is JSON (`application/json`, any
+  `+json`) or text (`text/plain`, `text/csv`). Documents, scripts, styles, images, fonts, and
+  media are counted as ignored and not stored.
+- Request bodies and all headers (request and response) are never stored. Query values are
+  dropped; only query key names are kept.
+- Calls with the same method and endpoint (origin and path) merge into one entry with a call
+  count; the newest body replaces the older one. Twenty polling calls become one entry.
 
 ### Size rules
 
-| Rule | Planned value |
-|---|---|
-| Responses listed per session | 200 (later ones counted, not stored) |
-| Body read per response | 1 MB (larger bodies: metadata only) |
-| Body kept per response after pruning | about 8 KB |
-| Arrays in JSON | first 3 items, then "(+N more)" |
-| Strings in JSON | cut at 200 characters; base64 and data URLs removed |
-| Nesting depth | 6 levels, deeper parts summarized |
+The numbers live in `NETWORK_LIMITS` (`src/shared/network.ts`).
 
-Pruning keeps the shape of the JSON (keys, types, a few sample items), which is usually what an AI
-needs to explain the data, and drops the bulk.
+| Rule | Value |
+|---|---|
+| Endpoints kept | 200; later new endpoints are counted as skipped |
+| Body read per response | 1 MB; a larger body keeps its details only, with a note |
+| Body kept per response | 8,000 characters, plus a one-line cut marker when cut |
+| Arrays in JSON | first 3 items, then `"(+N more items)"` |
+| Objects in JSON | first 50 keys, then a `"(+N more keys)"` entry |
+| Strings in JSON | cut at 200 characters; base64 runs and data URLs removed |
+| Nesting depth | 6 levels; deeper parts summarized |
+
+JSON is pruned by structure, so the kept text is still valid JSON that shows the data's keys,
+types, and a few sample items. A second, tighter pass runs if the first is still over the cap.
+Text is cut at a line break. Secrets are redacted with `redactSecrets` after pruning, in main,
+before the renderer sees anything.
 
 ### Review and export
 
-- Each response is a context item under a Network data group in the review
-  ([context-package](../_systems/context-package.md)), **left out by default**; the user switches
-  on the ones that matter.
-- Each item shows method, endpoint without query values, status, content type, original size,
-  kept size, and how many calls were merged.
-- In the package, response data is fenced and labelled as data, like page content.
-- Every included response counts against the package budget planned in
-  [issue-9 Known Issue 4](../issue-9-context-review/Known_Issues.md).
+- Each endpoint is a context item under **Network data** in Context, **left out by default**
+  (an opt-in source). The user switches on the ones that matter.
+- Each item shows method, path, status, host, content type, how many calls merged, the size
+  before and after pruning, pruning and redaction notes, and the query key names. The kept text
+  is editable, with Restore; Remove drops one item and Clear all drops every item.
+- In the detailed package, a `## Network data` section lists each included response with status,
+  calls, size, capture time and page, notes, and the body in a fenced `json` or `text` block
+  labelled as data. The compact package has one `## Response N` section per response.
+- Export redacts and hides emails again, like every source
+  ([context-package](../_systems/context-package.md)).
 
 ## Verification / Rollout
 
-To be written with the implementation: a local test site that fires 20 or more requests with
-large JSON, images, and repeated calls; checks that only JSON and text are kept, duplicates merge,
-bodies are pruned to the limits, secrets are redacted, everything starts left out, and the package
-stays within the chosen budget.
+Verified in the Electron dev app against a local busy page (`/shop`) that fires 25 API calls on
+load, plus a polling endpoint every 400 ms, then again in the packaged app. See
+[Test_Cases.md](./Test_Cases.md).

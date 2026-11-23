@@ -3,6 +3,7 @@ import { DEFAULT_VIEW, NAV_ITEMS, type ViewId } from './components/navigation';
 import { Sidebar } from './components/Sidebar';
 import { BrowserProvider } from './features/browser/BrowserProvider';
 import { BrowserWorkspace } from './features/browser/BrowserWorkspace';
+import { NetworkProvider, useNetwork } from './features/capture/NetworkProvider';
 import { ContextReviewProvider, useContextReview } from './features/context/ContextReviewProvider';
 import { ContextWorkspace } from './features/context/ContextWorkspace';
 import { PageContentProvider, usePageContent } from './features/context/PageContentProvider';
@@ -21,6 +22,7 @@ function Shell() {
   const { screenshots } = useScreenshots();
   const { pages } = usePageContent();
   const { review } = useContextReview();
+  const { network } = useNetwork();
   const ActiveWorkspace = WORKSPACES[activeView];
 
   const contextIds = [
@@ -28,7 +30,9 @@ function Shell() {
     ...screenshots.map((shot) => `screenshot:${shot.id}`),
     ...pages.map((page) => `page:${page.id}`),
   ];
-  const included = contextIds.filter((id) => review.excluded[id] !== true).length;
+  const included =
+    contextIds.filter((id) => review.excluded[id] !== true).length +
+    network.entries.filter((entry) => review.optedIn[`network:${entry.id}`] === true).length;
 
   return (
     <div className="app-shell">
@@ -50,9 +54,11 @@ export function App() {
     <ScreenshotsProvider>
       <PageContentProvider>
         <ContextReviewProvider>
-          <BrowserProvider>
-            <Shell />
-          </BrowserProvider>
+          <NetworkProvider>
+            <BrowserProvider>
+              <Shell />
+            </BrowserProvider>
+          </NetworkProvider>
         </ContextReviewProvider>
       </PageContentProvider>
     </ScreenshotsProvider>

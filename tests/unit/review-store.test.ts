@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   collectContextItems,
   groupItems,
+  type PackageNetwork,
   type PackagePage,
   type PackageScreenshot,
 } from '../../src/renderer/src/features/context/context-model';
@@ -67,6 +68,7 @@ describe('reviewReducer', () => {
   it('starts with everything included, detailed mode, and emails hidden', () => {
     expect(INITIAL_REVIEW).toEqual({
       excluded: {},
+      optedIn: {},
       notes: [],
       mode: 'detailed',
       hideEmails: true,
@@ -108,5 +110,58 @@ describe('reviewReducer', () => {
     let state = reviewReducer(INITIAL_REVIEW, { type: 'set-mode', mode: 'compact' });
     state = reviewReducer(state, { type: 'set-hide-emails', hide: false });
     expect(state).toMatchObject({ mode: 'compact', hideEmails: false });
+  });
+});
+
+describe('network items start left out', () => {
+  const entry = (id: string): PackageNetwork & { id: string } => ({
+    id,
+    method: 'GET',
+    endpoint: `https://api.example.com/${id}`,
+    queryKeys: [],
+    status: 200,
+    mimeType: 'application/json',
+    kind: 'json',
+    calls: 1,
+    originalBytes: 100,
+    text: '{}',
+    originalText: '{}',
+    truncated: false,
+    redactions: 0,
+    pageUrl: 'https://example.com/',
+    lastAt: '2026-11-23T08:00:00.000Z',
+  });
+
+  it('includes a network item only after the user opts in', () => {
+    const items = collectContextItems({
+      notes: [],
+      screenshots: [],
+      pages: [],
+      network: [entry('a'), entry('b')],
+      excluded: {},
+      optedIn: { 'network:b': true },
+    });
+    expect(items.map((item) => [item.id, item.included])).toEqual([
+      ['network:a', false],
+      ['network:b', true],
+    ]);
+    expect(groupItems(items).map((group) => group.label)).toEqual(['Network data']);
+  });
+
+  it('switches network items on and off through opt-in, not the excluded list', () => {
+    let state = reviewReducer(INITIAL_REVIEW, {
+      type: 'set-included',
+      ids: ['network:a', 'screenshot:s'],
+      included: true,
+    });
+    expect(state.optedIn).toEqual({ 'network:a': true });
+    expect(state.excluded).toEqual({});
+    state = reviewReducer(state, {
+      type: 'set-included',
+      ids: ['network:a', 'screenshot:s'],
+      included: false,
+    });
+    expect(state.optedIn).toEqual({});
+    expect(state.excluded).toEqual({ 'screenshot:s': true });
   });
 });

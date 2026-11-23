@@ -11,6 +11,13 @@ import {
   runCommand,
   setBounds,
 } from './browser/browser-view';
+import {
+  clearNetwork,
+  getNetworkState,
+  removeNetworkEntry,
+  startRecording,
+  stopRecording,
+} from './browser/network-capture';
 import { parseSaveRequest, sanitizeFileName } from './ipc-requests';
 import { recognizeImage } from './ocr/ocr-service';
 import { supportsMica } from './window-options';
@@ -68,4 +75,9 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.browserCapture, () => capture());
   ipcMain.handle(IPC_CHANNELS.browserExtract, () => extractPage());
   ipcMain.on(IPC_CHANNELS.browserSetBounds, (_event, bounds: unknown) => setBounds(bounds));
+  ipcMain.handle(IPC_CHANNELS.networkStart, () => startRecording());
+  ipcMain.handle(IPC_CHANNELS.networkStop, () => stopRecording());
+  ipcMain.handle(IPC_CHANNELS.networkClear, () => clearNetwork());
+  ipcMain.handle(IPC_CHANNELS.networkRemove, (_event, id: unknown) => removeNetworkEntry(id));
+  ipcMain.handle(IPC_CHANNELS.networkGetState, () => getNetworkState());
 }

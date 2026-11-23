@@ -161,6 +161,16 @@ function ensureView(): WebContentsView {
   return view;
 }
 
+/** The active page's web contents, once a page is open; used by network capture. */
+export function getPageContents(): WebContents | null {
+  return view && hasPage ? view.webContents : null;
+}
+
+/** Sends an event to the app UI, if its window is still open. */
+export function sendToApp(channel: string, payload: unknown): void {
+  if (ownerWindow && !ownerWindow.isDestroyed()) ownerWindow.webContents.send(channel, payload);
+}
+
 /** Ties the browser to the app window. The page view itself is created on first navigation. */
 export function attachBrowser(window: BrowserWindow): void {
   ownerWindow = window;

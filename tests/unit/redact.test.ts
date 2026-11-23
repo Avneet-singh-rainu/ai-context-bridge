@@ -56,3 +56,14 @@ describe('hideEmails', () => {
     });
   });
 });
+
+describe('redactSecrets in JSON', () => {
+  it('hides labelled values inside JSON keys and keeps the key', () => {
+    expect(redactSecrets('{\n  "api_key": "abcd1234efgh5678",\n  "user": "ana"\n}').text).toBe(
+      '{\n  "api_key": "[REDACTED]",\n  "user": "ana"\n}',
+    );
+    expect(redactSecrets('{"access_token":"tok_abcdefgh"}').text).toBe(
+      '{"access_token":"[REDACTED]"}',
+    );
+  });
+});

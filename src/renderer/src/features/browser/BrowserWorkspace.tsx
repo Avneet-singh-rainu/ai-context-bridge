@@ -3,7 +3,9 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleCheck,
+  CircleDot,
   CircleExclamationPoint,
+  CircleStop,
   Compass,
   House,
   Info,
@@ -17,6 +19,7 @@ import {
 } from 'lucide-react';
 import { type FormEvent, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { PageSecurity } from '../../../../shared/address';
+import { useNetwork } from '../capture/NetworkProvider';
 import { type CaptureStatus, describeCapture, useBrowser } from './BrowserProvider';
 
 const SECURITY: Record<PageSecurity, { label: string; Icon: typeof Lock }> = {
@@ -84,6 +87,12 @@ export function BrowserWorkspace() {
   const [editing, setEditing] = useState(false);
   const [focused, setFocused] = useState(false);
   const [addressError, setAddressError] = useState<string | null>(null);
+  const recorder = useNetwork();
+  const { network } = recorder;
+  const [recordError, setRecordError] = useState<string | null>(null);
+  const [recordBusy, setRecordBusy] = useState(false);
+  /** The network notice the user closed; a new notice (new text or new session) shows again. */
+  const [closedNotice, setClosedNotice] = useState<string | null>(null);
   useBrowserViewBounds(viewportRef);
 
   // Show the page's real URL in the address bar, except while the user is typing.
@@ -102,6 +111,18 @@ export function BrowserWorkspace() {
     inputRef.current?.blur();
   };
 
+  const toggleRecording = async () => {
+    setRecordError(null);
+    if (network.recording) {
+      recorder.stop();
+      return;
+    }
+    setRecordBusy(true);
+    const error = await recorder.start();
+    setRecordBusy(false);
+    if (error) setRecordError(error);
+  };
+
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     void go(draft);
@@ -114,7 +135,15 @@ export function BrowserWorkspace() {
   const security = SECURITY[state.security];
   const notice = addressError
     ? { kind: 'error' as const, text: addressError }
-    : (state.notice ?? null);
+    : recordError
+      ? { kind: 'error' as const, text: recordError }
+      : (state.notice ?? null);
+  const networkNoticeKey = network.notice
+    ? `${network.startedAt ?? ''}|${network.notice.text}`
+    : null;
+  const networkNotice = network.notice && networkNoticeKey !== closedNotice ? network.notice : null;
+  const endpoints = network.entries.length;
+  const endpointWord = endpoints === 1 ? 'endpoint' : 'endpoints';
 
   return (
     <section className="view browser-workspace" aria-label="Browser">
@@ -188,6 +217,31 @@ export function BrowserWorkspace() {
         <div className="toolbar-actions">
           <button
             type="button"
+            className={
+              network.recording
+                ? 'btn btn-secondary record-btn is-recording'
+                : 'btn btn-secondary record-btn'
+            }
+            aria-pressed={network.recording}
+            disabled={!available || recordBusy || (!network.recording && !state.hasPage)}
+            title={
+              network.recording
+                ? "Stop recording the page's API calls"
+                : "Record the page's API calls (fetch and XHR) so their responses can go into Context"
+            }
+            onClick={() => void toggleRecording()}
+          >
+            {network.recording ? (
+              <CircleStop size={15} strokeWidth={1.9} aria-hidden="true" />
+            ) : (
+              <CircleDot size={15} strokeWidth={1.9} aria-hidden="true" />
+            )}
+            <span className="btn-label">
+              {network.recording ? `Stop (${endpoints})` : 'Record network'}
+            </span>
+          </button>
+          <button
+            type="button"
             className="btn btn-secondary"
             disabled={!canCapture}
             title="Read the page's text, headings, tables, and selected text into Context"
@@ -223,6 +277,19 @@ export function BrowserWorkspace() {
           <span className="page-url" title={state.url}>
             {state.url}
           </span>
+          {(network.recording || endpoints > 0) && (
+            <span
+              className="recording-state"
+              data-recording={network.recording}
+              role="status"
+              aria-live="polite"
+            >
+              {network.recording && <span className="rec-dot" aria-hidden="true" />}
+              {network.recording
+                ? `Recording · ${endpoints} ${endpointWord}`
+                : `${endpoints} API ${endpointWord} recorded, review in Context`}
+            </span>
+          )}
           <span className="capture-state" data-kind={capture.kind} role="status" aria-live="polite">
             <CaptureIcon capture={capture} />
             Capture: {describeCapture(capture)}
@@ -242,6 +309,36 @@ export function BrowserWorkspace() {
             <Info size={16} aria-hidden="true" />
           )}
           <div className="banner-body">{notice.text}</div>
+        </div>
+      )}
+
+      {networkNotice && (
+        <div
+          className="banner browser-notice"
+          data-tone={networkNotice.kind === 'error' ? 'error' : 'info'}
+          role="status"
+        >
+          {networkNotice.kind === 'error' ? (
+            <CircleExclamationPoint size={16} aria-hidden="true" />
+          ) : (
+            <Info size={16} aria-hidden="true" />
+          )}
+          <div className="banner-body">{networkNotice.text}</div>
+          {network.recording && state.hasPage && (
+            <button type="button" className="btn btn-secondary" onClick={() => command('reload')}>
+              <RotateCw size={13} aria-hidden="true" />
+              Reload
+            </button>
+          )}
+          <button
+            type="button"
+            className="icon-btn banner-close"
+            aria-label="Close this message"
+            title="Close"
+            onClick={() => setClosedNotice(networkNoticeKey)}
+          >
+            <X size={14} />
+          </button>
         </div>
       )}
 

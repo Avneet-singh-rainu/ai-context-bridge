@@ -1,4 +1,6 @@
-import { Plus } from 'lucide-react';
+import { Eraser, Plus } from 'lucide-react';
+import { NetworkEditor } from '../capture/NetworkEditor';
+import { useNetwork } from '../capture/NetworkProvider';
 import { useScreenshots } from '../screenshots/ScreenshotsProvider';
 import { GroupToggle, NoteEditor, ScreenshotTextEditor } from './ContextItemEditors';
 import { useContextReview } from './ContextReviewProvider';
@@ -11,6 +13,7 @@ export function ContextGroupBlock({ group }: { group: ContextGroup }) {
   const { screenshots, ocr, editText, restoreText } = useScreenshots();
   const { pages, editPage, restorePage, removePage } = usePageContent();
   const { setIncluded, addNote, editNote, removeNote } = useContextReview();
+  const network = useNetwork();
   const ids = group.items.map((item) => item.id);
   const includedCount = group.items.filter((item) => item.included).length;
 
@@ -32,7 +35,24 @@ export function ContextGroupBlock({ group }: { group: ContextGroup }) {
             Add note
           </button>
         )}
+        {group.source === 'network' && (
+          <button
+            type="button"
+            className="btn btn-plain is-destructive"
+            onClick={network.clear}
+            title="Remove every recorded response"
+          >
+            <Eraser size={14} aria-hidden="true" />
+            Clear all
+          </button>
+        )}
       </div>
+      {group.source === 'network' && (
+        <p className="section-hint">
+          Responses start left out. Switch on the ones that matter; each is pruned to its shape (a
+          few sample items, short strings) so the package stays small.
+        </p>
+      )}
       {group.source === 'note' && group.items.length === 0 && (
         <p className="section-hint">
           Tell the AI what you want, such as a question or a goal. Notes go first in the package.
@@ -68,6 +88,24 @@ export function ContextGroupBlock({ group }: { group: ContextGroup }) {
                 onToggle={toggle}
                 onEdit={editText}
                 onRestore={restoreText}
+              />
+            );
+          }
+          if (item.source === 'network') {
+            const storeId = item.id.slice('network:'.length);
+            const entry = network.network.entries.find((candidate) => candidate.id === storeId);
+            if (!entry) return null;
+            return (
+              <NetworkEditor
+                key={item.id}
+                entry={entry}
+                text={network.textOf(entry)}
+                position={index + 1}
+                included={item.included}
+                onToggle={toggle}
+                onEdit={(text) => network.edit(entry.id, entry.text, text)}
+                onRestore={() => network.restore(entry.id)}
+                onRemove={() => network.remove(entry.id)}
               />
             );
           }

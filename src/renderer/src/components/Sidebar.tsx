@@ -2,6 +2,7 @@ import { FileText, Globe, Images, Layers, type LucideIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { AppInfo } from '../../../shared/ipc-contract';
 import { describeCapture, useBrowser } from '../features/browser/BrowserProvider';
+import { useNetwork } from '../features/capture/NetworkProvider';
 import type { NavItem, ViewId } from './navigation';
 
 const ICONS: Record<ViewId, LucideIcon> = {
@@ -21,6 +22,7 @@ function hostOf(url: string): string {
 /** Active page and capture state on every view, as the issue asks; plus the app version. */
 function SidebarFooter() {
   const { state, capture } = useBrowser();
+  const { network } = useNetwork();
   const [appInfo, setAppInfo] = useState<AppInfo | null>(null);
 
   useEffect(() => {
@@ -44,6 +46,15 @@ function SidebarFooter() {
         <span className="status-dot" aria-hidden="true" />
         <span>Capture: {describeCapture(capture)}</span>
       </div>
+      {(network.recording || network.entries.length > 0) && (
+        <div className="footer-row status-network" data-recording={network.recording}>
+          <span className="status-dot" aria-hidden="true" />
+          <span>
+            Network: {network.recording ? 'recording, ' : ''}
+            {network.entries.length} endpoint{network.entries.length === 1 ? '' : 's'}
+          </span>
+        </div>
+      )}
       <div
         className="footer-version"
         title={appInfo ? `Electron ${appInfo.electron}, Chromium ${appInfo.chrome}` : undefined}
