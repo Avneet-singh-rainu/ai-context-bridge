@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdir, readFile } from 'node:fs/promises';
+import { mkdir, readFile, rm } from 'node:fs/promises';
 import path from 'node:path';
 
 /** Environment override used when Chrome is installed outside the standard Windows locations. */
@@ -91,6 +91,15 @@ function defaultSleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/** Remove a port file left by a previous Chrome session so no dead port is read. */
+export async function clearStaleDevToolsPort(
+  profileDir: string,
+  removeFile: (filePath: string) => Promise<void> = async (filePath) =>
+    rm(filePath, { force: true }),
+): Promise<void> {
+  await removeFile(path.join(profileDir, 'DevToolsActivePort'));
+}
+
 /** Poll for the debugging endpoint. Chrome writes the file shortly after the process starts. */
 export async function waitForDevToolsEndpoint(
   profileDir: string,
@@ -124,6 +133,7 @@ export async function launchChrome(options: LaunchChromeOptions): Promise<Chrome
 
   const profileDir = path.join(options.userDataPath, 'chrome-profile');
   await mkdir(profileDir, { recursive: true });
+  await clearStaleDevToolsPort(profileDir);
 
   const child = spawn(executable, chromeLaunchArgs(profileDir), {
     stdio: 'ignore',
