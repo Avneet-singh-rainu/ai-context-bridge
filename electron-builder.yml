@@ -2,6 +2,8 @@ appId: com.aicontextbridge.app
 productName: AI Context Bridge
 directories:
   output: dist
+  # Icons and other build inputs; `build/` is ignored by git. Regenerate with `npm run icon`.
+  buildResources: resources
 files:
   - out/**/*
   - package.json
@@ -13,7 +15,10 @@ win:
       arch:
         - x64
   artifactName: AI-Context-Bridge-Setup-${version}.${ext}
+  icon: resources/icon.ico
 nsis:
+  installerIcon: resources/icon.ico
+  uninstallerIcon: resources/icon.ico
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true

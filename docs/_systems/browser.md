@@ -43,10 +43,12 @@ bounds (finite numbers).
 
 ## Page identity and capture state
 
-- The Browser view shows a security badge (`pageSecurity`: Secure for https, Local for local
-  http, Not secure otherwise), the page title, and the full URL. The status bar shows the active
-  host and title.
-- The capture state (idle, capturing, added, failed) shows in the Browser view and the status bar.
+- The address field shows the security icon and host while idle and the full URL while editing.
+  Below the toolbar, a strip shows a security badge (`pageSecurity`: Secure for https, Local for
+  local http, Not secure otherwise), the page title, and the full URL. The sidebar footer shows
+  the active host and title on every view.
+- The capture state (idle, capturing or reading, added, failed) shows in the Browser view's strip
+  and in the sidebar footer. See [UI design](./ui-design.md).
 
 ## Capture
 

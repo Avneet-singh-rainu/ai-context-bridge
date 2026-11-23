@@ -19,6 +19,9 @@ electron-vite builds each part into `out/main/`, `out/preload/`, and `out/render
 
 - The main window keeps `contextIsolation: true`, `sandbox: true`, `nodeIntegration: false`, and
   `webviewTag: false`. `tests/unit/window-options.test.ts` fails if any of these change.
+- The window hides its title bar (`titleBarStyle: 'hidden'`) and lets Windows draw the caption
+  buttons over the app (`titleBarOverlay`); Mica is used where `supportsMica` says Windows can.
+  See [UI design](./ui-design.md).
 - A new IPC channel needs three edits: the name and types in `src/shared/ipc-contract.ts`, a
   handler in `src/main/ipc.ts`, and a method in `src/preload/index.ts`. The ticket also adds an
   `IPC_Contracts.md` entry.
@@ -55,7 +58,9 @@ electron-vite builds each part into `out/main/`, `out/preload/`, and `out/render
 
 - `npm run build` type-checks, then writes `out/`.
 - `npm run dist` builds, then electron-builder writes `dist/AI-Context-Bridge-Setup-<version>.exe`
-  (NSIS, x64, unsigned, default icon).
+  (NSIS, x64, unsigned). The app, installer, and uninstaller use `resources/icon.ico`
+  (`buildResources: resources`, because `build/` is ignored by git). See
+  [UI design](./ui-design.md).
 - electron-vite leaves `dependencies` out of the main bundle; electron-builder packs them into
   `app.asar`. The only runtime dependencies are tesseract.js and its English model (see
   [OCR](./ocr.md)); everything else is a dev dependency.

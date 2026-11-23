@@ -31,6 +31,7 @@ If `npm run dev` fails with "Electron uninstall", Electron's download step did n
 | `npm run typecheck` | Type-checks with TypeScript 7 |
 | `npm test` | Runs the Vitest unit tests in `tests/` |
 | `npm run dist` | Builds, then writes the NSIS installer to `dist/` |
+| `npm run icon` | Renders `resources/icon.svg` into `resources/icon.png` and `resources/icon.ico` (run after editing the SVG) |
 
 ## Where code lives
 
@@ -40,7 +41,9 @@ the IPC rules.
 ## Debugging
 
 - **Renderer:** while `npm run dev` runs, open `http://localhost:5173` in a normal browser. The
-  status bar shows "Preview outside Electron" because there is no preload bridge.
+  sidebar footer shows "Preview outside Electron" because there is no preload bridge, and the
+  window chrome (caption buttons, Mica) is missing. The look and the tokens are described in
+  [UI design](./_systems/ui-design.md).
 - **Capture spike:** see the [spike README](../spikes/electron-cdp/README.md) and its VS Code
   launch config.
 

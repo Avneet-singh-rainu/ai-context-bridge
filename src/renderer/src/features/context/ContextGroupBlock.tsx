@@ -1,3 +1,4 @@
+import { Plus } from 'lucide-react';
 import { useScreenshots } from '../screenshots/ScreenshotsProvider';
 import { GroupToggle, NoteEditor, ScreenshotTextEditor } from './ContextItemEditors';
 import { useContextReview } from './ContextReviewProvider';
@@ -15,7 +16,7 @@ export function ContextGroupBlock({ group }: { group: ContextGroup }) {
 
   return (
     <section className="context-group" aria-label={group.label}>
-      <div className="context-group-head">
+      <div className="section-head">
         <h2>{group.label}</h2>
         {group.items.length > 0 && (
           <GroupToggle
@@ -26,14 +27,15 @@ export function ContextGroupBlock({ group }: { group: ContextGroup }) {
           />
         )}
         {group.source === 'note' && (
-          <button type="button" className="text-button" onClick={addNote}>
+          <button type="button" className="btn btn-plain" onClick={addNote}>
+            <Plus size={14} strokeWidth={2.2} aria-hidden="true" />
             Add note
           </button>
         )}
       </div>
       {group.source === 'note' && group.items.length === 0 && (
-        <p className="context-group-hint">
-          Add a note to tell the AI what you want, such as a question or a goal.
+        <p className="section-hint">
+          Tell the AI what you want, such as a question or a goal. Notes go first in the package.
         </p>
       )}
       <ol className="text-editor-list">

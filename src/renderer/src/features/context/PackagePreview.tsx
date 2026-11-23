@@ -1,5 +1,7 @@
+import { Check, Pencil, RefreshCw, TriangleExclamationPoint } from 'lucide-react';
+
 /** Rough token count for chat context limits: about four characters per token in English. */
-const approxTokens = (text: string) => Math.ceil(text.length / 4);
+export const approxTokens = (text: string) => Math.ceil(text.length / 4);
 
 /**
  * The package as it will be copied or saved. Generated from the sources until the user chooses
@@ -23,26 +25,36 @@ export function PackagePreview({
   const text = edit ? edit.text : generated;
   return (
     <div className="package-preview">
-      <div className="context-group-head">
-        <h2>Markdown package</h2>
+      <div className="preview-head">
+        <h2>{edit ? 'Editing package' : 'Package preview'}</h2>
         <span className="package-size">
-          {text.length} characters, about {approxTokens(text)} tokens
+          {text.length.toLocaleString()} characters · about {approxTokens(text).toLocaleString()}{' '}
+          tokens
         </span>
         {edit ? (
-          <button type="button" className="text-button" onClick={onDiscard}>
+          <button type="button" className="btn btn-plain" onClick={onDiscard}>
+            {isStale ? (
+              <RefreshCw size={14} aria-hidden="true" />
+            ) : (
+              <Check size={14} aria-hidden="true" />
+            )}
             {isStale ? 'Regenerate' : 'Stop editing'}
           </button>
         ) : (
-          <button type="button" className="text-button" onClick={onStartEdit}>
+          <button type="button" className="btn btn-plain" onClick={onStartEdit}>
+            <Pencil size={13} aria-hidden="true" />
             Edit package text
           </button>
         )}
       </div>
       {edit && isStale && (
-        <p className="package-stale" role="status">
-          Sources or options changed after you started editing. Your edited text does not include
-          those changes. Regenerate drops your edits and uses the current sources.
-        </p>
+        <div className="banner package-stale" data-tone="warning" role="status">
+          <TriangleExclamationPoint size={15} aria-hidden="true" />
+          <div className="banner-body">
+            Sources or options changed after you started editing. Your edited text does not include
+            those changes. Regenerate drops your edits and uses the current sources.
+          </div>
+        </div>
       )}
       {edit ? (
         <textarea

@@ -1,5 +1,14 @@
+import {
+  CircleCheck,
+  CircleExclamationPoint,
+  Copy,
+  Download,
+  FileText,
+  ScanText,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { hideEmails, redactSecrets } from '../../../../shared/redact';
+import { Toolbar } from '../../components/Toolbar';
 import { renderContextPackage, suggestedFileName } from '../export/context-markdown';
 import { ExtractTextButton } from '../screenshots/ExtractTextButton';
 import { needsExtraction } from '../screenshots/ocr-store';
@@ -7,7 +16,7 @@ import { useScreenshots } from '../screenshots/ScreenshotsProvider';
 import { ContextGroupBlock } from './ContextGroupBlock';
 import { useContextReview } from './ContextReviewProvider';
 import { collectContextItems, groupItems } from './context-model';
-import { PackagePreview } from './PackagePreview';
+import { approxTokens, PackagePreview } from './PackagePreview';
 import { usePageContent } from './PageContentProvider';
 import { PrivacyReview } from './PrivacyReview';
 import type { ExportMode } from './review-store';
@@ -16,6 +25,11 @@ interface Notice {
   kind: 'ok' | 'error';
   text: string;
 }
+
+const MODES: { mode: ExportMode; label: string }[] = [
+  { mode: 'detailed', label: 'Detailed' },
+  { mode: 'compact', label: 'Compact' },
+];
 
 /** The "- Created:" line changes every minute; ignore it when checking for real changes. */
 const withoutTimestamp = (text: string) => text.replace(/^- Created: .*$/m, '');
@@ -66,6 +80,7 @@ export function ContextWorkspace() {
     edit !== null && withoutTimestamp(edit.basedOn) !== withoutTimestamp(rendered.markdown);
   const nothingIncluded = rendered.privacy.included === 0;
   const hasSources = items.some((item) => item.source !== 'note');
+  const packageText = edit ? edit.text : rendered.markdown;
 
   /** The text that leaves the app. Edited text is cleaned again: the user may type anything. */
   const finalText = (): { text: string; redacted: number } => {
@@ -106,92 +121,103 @@ export function ContextWorkspace() {
     }
   };
 
+  const subtitle = nothingIncluded
+    ? 'Nothing included yet'
+    : `${rendered.privacy.included} item${rendered.privacy.included === 1 ? '' : 's'} included · about ${approxTokens(packageText).toLocaleString()} tokens`;
+
   return (
-    <section className="workspace context-workspace" aria-label="Context">
-      <header className="screenshots-header">
-        <div>
-          <h1>Context</h1>
-          <p>
-            Review everything collected, leave out what is not needed, then copy or save one
-            Markdown package. Everything stays on this PC.
-          </p>
-        </div>
-        <div className="screenshots-actions">
-          <fieldset className="mode-switch">
-            <legend className="visually-hidden">Package style</legend>
-            {(['detailed', 'compact'] as ExportMode[]).map((mode) => (
-              <label key={mode} className={review.mode === mode ? 'is-active' : undefined}>
-                <input
-                  type="radio"
-                  name="package-mode"
-                  value={mode}
-                  checked={review.mode === mode}
-                  onChange={() => setMode(mode)}
-                />
-                {mode === 'detailed' ? 'Detailed' : 'Compact'}
-              </label>
-            ))}
-          </fieldset>
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={() => void save()}
-            disabled={!canSave || nothingIncluded}
-            title={canSave ? undefined : 'Needs the desktop app'}
-          >
-            Save as Markdown
-          </button>
-          <button
-            type="button"
-            className="primary-button"
-            onClick={() => void copy()}
-            disabled={nothingIncluded}
-          >
-            Copy to clipboard
-          </button>
-        </div>
-      </header>
+    <section className="view context-workspace" aria-label="Context">
+      <Toolbar title="Context" subtitle={subtitle}>
+        <fieldset className="segmented mode-switch">
+          <legend className="visually-hidden">Package style</legend>
+          {MODES.map(({ mode, label }) => (
+            <label key={mode} className={review.mode === mode ? 'is-active' : undefined}>
+              <input
+                type="radio"
+                name="package-mode"
+                value={mode}
+                checked={review.mode === mode}
+                onChange={() => setMode(mode)}
+              />
+              {label}
+            </label>
+          ))}
+        </fieldset>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={() => void save()}
+          disabled={!canSave || nothingIncluded}
+          title={canSave ? 'Save the package as a Markdown file' : 'Needs the desktop app'}
+        >
+          <Download size={15} strokeWidth={1.9} aria-hidden="true" />
+          <span className="btn-label">Save as Markdown</span>
+        </button>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={() => void copy()}
+          disabled={nothingIncluded}
+          title="Copy the package, ready to paste into an AI chat"
+        >
+          <Copy size={15} strokeWidth={1.9} aria-hidden="true" />
+          <span className="btn-label">Copy to clipboard</span>
+        </button>
+      </Toolbar>
 
-      <div role="status" aria-live="polite">
-        {notice && (
-          <p className={notice.kind === 'ok' ? 'context-notice' : 'context-notice is-error'}>
-            {notice.text}
-          </p>
-        )}
-      </div>
+      <div className="context-split">
+        <div className="context-list">
+          {notice && (
+            <div
+              className="banner context-notice"
+              data-tone={notice.kind === 'ok' ? 'success' : 'error'}
+              role="status"
+            >
+              {notice.kind === 'ok' ? (
+                <CircleCheck size={16} aria-hidden="true" />
+              ) : (
+                <CircleExclamationPoint size={16} aria-hidden="true" />
+              )}
+              <div className="banner-body">{notice.text}</div>
+            </div>
+          )}
 
-      {pending > 0 && (
-        <div className="context-pending">
-          <span>
-            {pending === 1
-              ? '1 screenshot has no text yet.'
-              : `${pending} screenshots have no text yet.`}
-          </span>
-          <ExtractTextButton />
-        </div>
-      )}
+          {pending > 0 && (
+            <div className="banner context-pending" data-tone="info">
+              <ScanText size={16} aria-hidden="true" />
+              <div className="banner-body">
+                {pending === 1
+                  ? '1 screenshot has no text yet.'
+                  : `${pending} screenshots have no text yet.`}
+              </div>
+              <ExtractTextButton />
+            </div>
+          )}
 
-      <PrivacyReview
-        privacy={rendered.privacy}
-        isEdited={edit !== null}
-        onHideEmails={setHideEmails}
-      />
+          <PrivacyReview
+            privacy={rendered.privacy}
+            isEdited={edit !== null}
+            onHideEmails={setHideEmails}
+          />
 
-      <div className="context-columns">
-        <div className="context-sources">
           {!groups.some((group) => group.source === 'note') && (
             <ContextGroupBlock group={{ source: 'note', label: 'Your notes', items: [] }} />
           )}
           {groups.map((group) => (
             <ContextGroupBlock key={group.source} group={group} />
           ))}
+
           {!hasSources && (
-            <p className="context-empty">
-              No sources yet. Add screenshots in the Screenshots view, or open a page in Browser and
-              use Extract page text.
-            </p>
+            <div className="context-empty-state">
+              <span className="icon-tile">
+                <FileText size={28} strokeWidth={1.6} aria-hidden="true" />
+              </span>
+              <strong>Nothing collected yet</strong>
+              Add screenshots in Screenshots, or open a page in Browser and use Extract page text.
+            </div>
           )}
         </div>
+
         <PackagePreview
           generated={rendered.markdown}
           edit={edit}

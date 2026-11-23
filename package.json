@@ -19,7 +19,8 @@
     "check:fix": "biome check --write .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "dist": "npm run build && electron-builder --win nsis"
+    "dist": "npm run build && electron-builder --win nsis",
+    "icon": "electron scripts/build-icon.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.8",
@@ -30,6 +31,7 @@
     "electron": "^45.4.1",
     "electron-builder": "^26.18.0",
     "electron-vite": "^6.0.0",
+    "lucide-react": "1.68.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "typescript": "^7.0.2",
