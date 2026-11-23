@@ -1,0 +1,9 @@
+ticket: issue-3
+title: "[M1] Scaffold Electron + React + TypeScript shell"
+status: In Progress
+blocked_reason:
+tier: 2
+systems: [app-shell]
+parent:
+children: []
+updated: 2026-11-23

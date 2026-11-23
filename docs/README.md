@@ -8,3 +8,4 @@ ticket.yaml.
 |---|---|---|---|---|
 | [issue-1](./issue-1-stack-decision/) | Confirm Electron + React + TypeScript as MVP stack | Shipped | 1 | 2026-11-22 |
 | [issue-2](./issue-2-electron-feasibility/) | Prove Electron browser and network capture path | Shipped | 2 | 2026-11-22 |
+| [issue-3](./issue-3-electron-shell/) | [M1] Scaffold Electron + React + TypeScript shell | In Progress | 2 | 2026-11-23 |
