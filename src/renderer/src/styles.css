@@ -1,0 +1,113 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f7f7f5;
+  --panel: #ffffff;
+  --text: #1f1f1d;
+  --muted: #5f5e5a;
+  --border: #dcdad3;
+  --accent: #185fa5;
+  --selected: #e6f1fb;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1b1b1a;
+    --panel: #242422;
+    --text: #ecebe6;
+    --muted: #a8a69e;
+    --border: #3a3a37;
+    --accent: #85b7eb;
+    --selected: #0c447c;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  grid-template-rows: 1fr auto;
+  height: 100vh;
+}
+
+.sidebar {
+  grid-row: 1 / span 2;
+  padding: 16px 10px;
+  border-right: 1px solid var(--border);
+  background: var(--panel);
+}
+
+.sidebar-title {
+  margin: 0 8px 16px;
+  font-weight: 600;
+}
+
+.sidebar ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nav-button {
+  width: 100%;
+  margin-bottom: 4px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.nav-button:hover {
+  background: var(--bg);
+}
+
+.nav-button[aria-current="page"] {
+  background: var(--selected);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.app-main {
+  overflow: auto;
+  padding: 32px;
+}
+
+.workspace h1 {
+  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.workspace p {
+  max-width: 60ch;
+  margin: 0 0 8px;
+  color: var(--muted);
+}
+
+.workspace-milestone {
+  font-size: 13px;
+}
+
+.status-bar {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 12px;
+}
