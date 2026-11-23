@@ -286,11 +286,21 @@ export class CdpPage {
   }
 }
 
-/** Creates one page target and returns a flattened-session wrapper for it. */
+/** Attaches to Chrome's startup blank page, or creates one, and returns a flattened-session wrapper. */
 export async function createCdpPage(client: CdpClient): Promise<CdpPage> {
-  const { targetId } = await client.send<{ targetId: string }>('Target.createTarget', {
-    url: 'about:blank',
-  });
+  const { targetInfos } = await client.send<{
+    targetInfos: Array<{ targetId: string; type: string; url: string }>;
+  }>('Target.getTargets');
+  const startupPage = targetInfos.find(
+    (target) => target.type === 'page' && target.url === 'about:blank',
+  );
+  const targetId =
+    startupPage?.targetId ??
+    (
+      await client.send<{ targetId: string }>('Target.createTarget', {
+        url: 'about:blank',
+      })
+    ).targetId;
   const { sessionId } = await client.send<{ sessionId: string }>('Target.attachToTarget', {
     targetId,
     flatten: true,
