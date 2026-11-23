@@ -29,3 +29,7 @@
   drew JPEG frames in the viewport and forwarded pointer, wheel, key and paste events.
 - `docs/_systems/browser.md`, `docs/_systems/browser-capture.md`, `docs/_systems/app-shell.md`,
   `docs/ARCHITECTURE.md` - updated the durable descriptions to the Chrome CDP architecture.
+- `src/main/browser/chrome-cdp.ts` - reuses Chrome's startup `about:blank` target instead of creating
+  a second page, so the app keeps one CDP page.
+- `tests/unit/chrome-cdp.test.ts` - covered startup-page reuse, creation fallback and target
+  filtering.
