@@ -100,21 +100,67 @@ describe('CdpClient', () => {
 });
 
 describe('createCdpPage', () => {
-  it('creates a target then attaches with a flattened session', async () => {
+  it('reuses Chrome startup blank page instead of creating a second target', async () => {
     const { client, socket } = clientWithSocket();
     socket.open();
     const creating = createCdpPage(client);
-    socket.reply({ targetId: 'target-1' });
+    socket.reply({
+      targetInfos: [{ targetId: 'startup-1', type: 'page', url: 'about:blank' }],
+    });
     await Promise.resolve();
     socket.reply({ sessionId: 'session-9' });
     const page = await creating;
 
-    expect(page.targetId).toBe('target-1');
+    expect(page.targetId).toBe('startup-1');
     expect(page.sessionId).toBe('session-9');
     expect(socket.sent.map((message) => message.method)).toEqual([
+      'Target.getTargets',
+      'Target.attachToTarget',
+    ]);
+    expect(socket.sent[1]).toMatchObject({ params: { targetId: 'startup-1', flatten: true } });
+  });
+
+  it('creates a target when no blank page exists', async () => {
+    const { client, socket } = clientWithSocket();
+    socket.open();
+    const creating = createCdpPage(client);
+    socket.reply({ targetInfos: [] });
+    await Promise.resolve();
+    socket.reply({ targetId: 'target-2' });
+    await Promise.resolve();
+    socket.reply({ sessionId: 'session-10' });
+    const page = await creating;
+
+    expect(page.targetId).toBe('target-2');
+    expect(socket.sent.map((message) => message.method)).toEqual([
+      'Target.getTargets',
       'Target.createTarget',
       'Target.attachToTarget',
     ]);
-    expect(socket.sent[1]).toMatchObject({ params: { targetId: 'target-1', flatten: true } });
+    expect(socket.sent[2]).toMatchObject({ params: { targetId: 'target-2', flatten: true } });
+  });
+
+  it('ignores non-page and non-blank targets when looking for the startup page', async () => {
+    const { client, socket } = clientWithSocket();
+    socket.open();
+    const creating = createCdpPage(client);
+    socket.reply({
+      targetInfos: [
+        { targetId: 'worker-1', type: 'service_worker', url: 'about:blank' },
+        { targetId: 'web-1', type: 'page', url: 'https://example.com' },
+      ],
+    });
+    await Promise.resolve();
+    socket.reply({ targetId: 'target-3' });
+    await Promise.resolve();
+    socket.reply({ sessionId: 'session-11' });
+    const page = await creating;
+
+    expect(page.targetId).toBe('target-3');
+    expect(socket.sent.map((message) => message.method)).toEqual([
+      'Target.getTargets',
+      'Target.createTarget',
+      'Target.attachToTarget',
+    ]);
   });
 });
