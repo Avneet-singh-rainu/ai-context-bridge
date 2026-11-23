@@ -62,7 +62,6 @@ export function chromeLaunchArgs(profileDir: string): string[] {
     '--headless=new',
     '--remote-debugging-port=0',
     `--user-data-dir=${profileDir}`,
-    '--remote-allow-origins=*',
     '--no-first-run',
     '--no-default-browser-check',
     '--hide-crash-restore-bubble',

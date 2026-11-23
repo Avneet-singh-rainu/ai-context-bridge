@@ -7,25 +7,28 @@
 | File | Change |
 |------|--------|
 | `src/main/browser/chrome-launcher.ts` | Find Chrome, launch headless with a persistent profile, read the debugging port, own process lifetime |
-| `src/main/browser/chrome-cdp.ts` | Own the CDP socket, page target and domain enablement |
-| `src/main/browser/chrome-frame.ts` | Pull screenshots from CDP and hand JPEG frames to the app |
+| `src/main/browser/chrome-cdp.ts` | Own the CDP socket, page target, domains, screenshots and isolated-world evaluation |
 | `src/main/browser/chrome-input.ts` | Map mouse, wheel, key and text events to CDP Input commands |
-| `src/main/browser/browser-view.ts` | Replace `WebContentsView` ownership with the Chrome page engine |
-| `src/shared/ipc-contract.ts` | Add frame, viewport and input messages to the browser contract |
-| `src/renderer/src/features/browser/BrowserWorkspace.tsx` | Draw frames in a canvas and forward input |
+| `src/main/browser/browser-view.ts` | Replace `WebContentsView` with the Chrome page engine; pump JPEG frames and own page events |
+| `src/main/browser/network-capture.ts` | Record network through page CDP events instead of `webContents.debugger` |
+| `src/main/browser/page-extract.ts` | Evaluate the extraction script in a CDP isolated world |
+| `src/shared/ipc-contract.ts` | Add frame and input messages to the browser contract |
+| `src/preload/index.ts`, `src/main/ipc.ts` | Expose and handle the new channels |
+| `src/renderer/src/features/browser/BrowserProvider.tsx`, `BrowserWorkspace.tsx` | Subscribe to frames, draw them in an `<img>`, and forward input |
 | `tests/unit/chrome-launcher.test.ts` | Cover Chrome discovery, launch arguments and port parsing |
+| `tests/unit/chrome-cdp.test.ts` | Cover the CDP client with a fake socket |
 | `tests/unit/chrome-input.test.ts` | Cover mapping of renderer events to CDP commands |
 
 ## Process Boundaries & IPC
 
 - Chrome and the CDP socket live in the main process. No preload or renderer code sees the socket.
-- New renderer-to-main messages: `browser:viewport`, `browser:input`.
-- New main-to-renderer messages: `browser:frame`, `browser:chrome-status`.
-- Existing `browser:navigate`, `browser:command`, `browser:state`, `browser:capture` and
-  `browser:extract-page` keep their names but change implementation.
+- New renderer-to-main message: `browser:input`.
+- New main-to-renderer message: `browser:frame`.
+- Existing `browser:navigate`, `browser:command`, `browser:set-bounds`, `browser:get-state`,
+  `browser:capture` and `browser:extract` keep their names but change implementation.
 - The app window keeps `contextIsolation: true`, `sandbox: true`, `nodeIntegration: false` and
   `webviewTag: false`.
-- IPC_Contracts.md is added when the channels are implemented.
+- See [IPC_Contracts.md](IPC_Contracts.md) for the two new channels.
 
 ## Data Model & Validation
 
@@ -85,6 +88,5 @@
 ## Verification / Rollout
 
 - Run the cases in [Test_Cases.md](Test_Cases.md) on a Windows machine with Chrome installed.
-- Keep the existing Electron browser behind a setting until the Google sign-in case passes.
-- Roll back by switching the browser engine setting back to Electron. The context package format and
-  capture providers remain unchanged.
+- The Electron browser is not kept as a switch: ADR 0002 replaces it. Roll back by reverting this
+  ticket's commits. The context package format and shared redaction rules stay the same.
