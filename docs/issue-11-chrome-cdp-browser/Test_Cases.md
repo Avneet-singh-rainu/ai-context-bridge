@@ -73,8 +73,8 @@ Chrome.
 **Setup:** Google still refuses sign-in after TC1.
 
 **Steps:**
-1. Enable the headed Chrome fallback.
-2. Repeat TC1.
+1. Repeat TC1 with a Google account that refuses headless sign-in.
+2. Read the notice in the browser strip.
 
-**Expected:** A headed Chrome window opens over the browser area and sign-in completes. The fallback
-is documented in Known_Issues.md.
+**Expected:** The app shows the plain sign-in notice from Known_Issues.md. No second window opens and
+no stack trace appears. ADR 0004 records why no headed fallback is built.

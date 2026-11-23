@@ -2,7 +2,8 @@
 
 Facts about the built-in browser that stay true after issue-11 closes. Main-process code lives in
 `src/main/browser/`; the UI lives in `src/renderer/src/features/browser/`; the address rules live
-in `src/shared/address.ts`. ADR 0002 supersedes ADR 0001's browser-host choice.
+in `src/shared/address.ts`. ADR 0002 supersedes ADR 0001's browser-host choice. ADR 0004 replaces
+ADR 0002's fixed frame timer with one frame after input stops.
 
 ## How the page is shown
 
@@ -18,11 +19,13 @@ in `src/shared/address.ts`. ADR 0002 supersedes ADR 0001's browser-host choice.
 - The renderer measures its `.browser-viewport` box and sends the bounds over
   `browser:set-bounds`. Main scales the box by the app page's zoom and sends
   `Emulation.setDeviceMetricsOverride` so Chrome renders at that size.
-- A frame timer asks Chrome for a JPEG screenshot every 200 ms and sends the base64 bytes to the
-  renderer on `browser:frame`. The renderer draws the image in `.browser-viewport`. A page that is
-  not visible gets no new frames.
+- `scheduleFrame` asks Chrome for one JPEG screenshot 150 ms after mouse, wheel, key, navigation or
+  resize input stops. Main sends the base64 bytes to the renderer on `browser:frame`. The renderer
+  draws the image in `.browser-viewport`. A page that is not visible gets no new frames. A later
+  input replaces the pending frame, and a stale screenshot is dropped.
 - Input never goes to Electron's web contents. The renderer sends `browser:input` events;
   `chrome-input.ts` maps them to CDP `Input` commands in main. Coordinates are scaled for app zoom.
+  The renderer caps mouse moves at 33 ms.
 - Main pushes `BrowserState` (URL, title, loading, back and forward, security, notice) to the
   renderer on `browser:state` after every navigation, load, title change or notice.
 
