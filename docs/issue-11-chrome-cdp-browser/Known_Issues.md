@@ -35,9 +35,8 @@ the app cannot show. The sign-in flow then stalled on the visible account page. 
 `--disable-features=SigninInterception` so Chrome keeps the sign-in flow on the tracked page.
 
 **Why not fully fixed here:** Google sign-in needs a real account and a person at the keyboard. TC1
-must confirm that the complete flow now stays inside the app. A headed Chrome window layered over the
-viewport remains the fallback if Google still refuses headless sign-in. ADR 0002 records the
-tradeoff.
+must confirm that the complete flow stays inside the app. ADR 0004 keeps one headless engine; the app
+shows a plain notice if headless sign-in still fails and adds no headed fallback.
 
 **Blast radius:** Sites that use other bot signals may still block pages. Screenshots, OCR and Context
 still work.
@@ -67,25 +66,28 @@ still work.
 
 **Found:** 2026-11-23
 
-**What happens:** JPEG frames are pushed about five times a second and input is mapped from renderer
-events to CDP commands. Text selection, IME input, modifier keys and fast scrolling may not behave
-exactly as in Chrome. Local testing found two concrete faults. A screenshot sent while the page was
+**What happens:** JPEG frames appear inside the app and input is mapped from renderer events to CDP
+commands. Text selection, IME input, modifier keys and fast scrolling may not behave exactly as in
+Chrome. Local testing earlier found two concrete faults. A screenshot sent while the page was
 navigating or resizing sometimes received no CDP reply, so `frameInFlight` stayed true and the app
 kept showing a stale frame; after a window resize that stale frame was stretched into the new box.
 A frame capture was also requested for every mouse move, which queued input behind 40-60 ms JPEG
 captures and made clicks and typing feel slow.
 
-**What was fixed:** `CdpClient.send` now accepts a timeout and clears the pending command when the
-timeout fires. `pumpFrame` gives each screenshot two seconds, so one silent reply can no longer stop
-all later frames. Input no longer requests a frame for mouse moves, and other input frames are
-limited to one every 100 ms. Local runs showed 15 frames in three seconds at normal size and 30
-frames in three seconds after maximise. The renderer box and the frame's natural size matched at
-normal size.
+**What was fixed:** `CdpClient.send` accepts a timeout and clears the pending command when the
+timeout fires. `pumpFrame` gives each screenshot two seconds, so one silent reply cannot stop all
+later frames. The renderer caps mouse moves at 33 ms. `browser-view.ts` no longer runs a 200 ms
+frame timer; `scheduleFrame` sends one JPEG 150 ms after mouse, wheel, key, navigation or resize
+input stops. A later input event replaces the pending frame and a stale screenshot is dropped.
+Measured screenshot calls before the change took `88, 78, 55, 49, 68, 57, 160, 61, 49, 57` ms.
+Input without screenshots measured `p50 7 ms, p95 9 ms`; input with screenshots measured
+`p50 7 ms, p95 21 ms`. The new path sends no screenshot during active input.
 
 **Why not fully fixed here:** Text selection, IME input, modifier keys and fast scrolling still need
-a person at the keyboard. TC4 in [Test_Cases.md](Test_Cases.md) records the check. The two pixel
-difference seen once between the renderer box and the CDP viewport after maximise must be confirmed
-again with a stable window layout.
+a person at the keyboard. TC4 in [Test_Cases.md](Test_Cases.md) records the check. The page updates
+in jumps after the user pauses, and a fast scroll can show stale content for 150 ms. That trade is
+recorded in ADR 0004. The two pixel difference seen once between the renderer box and the CDP
+viewport after maximise must be confirmed again with a stable window layout.
 
 **Blast radius:** Page interaction may feel different from Chrome until TC4 passes. Navigation,
 capture, extraction and network recording do not depend on frame fidelity.

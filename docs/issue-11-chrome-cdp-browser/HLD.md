@@ -37,7 +37,7 @@ uses one `WebContentsView` and Electron's debugger for network capture.
 
 A Chrome process manager starts installed Chrome in headless mode with a dedicated profile and a
 remote debugging port. A CDP session owner connects to Chrome, creates the page target and enables
-the domains needed for capture. A frame pump sends page screenshots to the renderer. An input
+the domains needed for capture. A frame scheduler sends one JPEG frame after input stops. An input
 bridge turns renderer events into CDP input commands. Capture adapters use the same CDP session for
 DOM text, page screenshots and network responses.
 
@@ -54,7 +54,7 @@ images and structured state. The CDP socket is never exposed to web content.
 | CDP session owner | Chrome | Page, Runtime and Network commands |
 | Chrome | CDP session owner | Frames, load events, DOM and network events |
 | CDP session owner | Main state owner | Browser state and redacted capture results |
-| Main state owner | Renderer | Browser state, page frames and notices |
+| Main state owner | Renderer | Browser state, one JPEG frame after input pauses, and notices |
 
 ## Impact & Blast Radius
 
@@ -65,6 +65,7 @@ images and structured state. The CDP socket is never exposed to web content.
 - The context package format stays the same. Source references still name URL, title and time.
 - Privacy rules stay in main. No headers, cookies or request bodies go to the renderer before
   redaction and pruning.
-- ADR 0001's browser-host decision is superseded by ADR 0002. Electron remains the shell.
+- ADR 0001's browser-host decision is superseded by ADR 0002. ADR 0004 replaces the fixed frame
+  timer with one frame after input pauses. Electron remains the shell.
 - If Chrome is missing or headless sign-in is rejected, the browser must degrade clearly instead of
   failing silently.

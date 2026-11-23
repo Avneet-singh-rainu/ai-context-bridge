@@ -31,10 +31,11 @@ events: coordinates must be finite and between 0 and 32767, deltas must be finit
 
 **Direction:** main -> renderer (event)
 **Preload API:** `window.bridge.onBrowserFrame(listener)`, which returns an unsubscribe function
-**Sender:** `pumpFrame` in `browser-view.ts`, through `sendToApp`
+**Sender:** `scheduleFrame` and `pumpFrame` in `browser-view.ts`, through `sendToApp`
 
-Sent about five times a second while a page is open and the browser viewport is visible. Each event
-carries a fresh JPEG of the visible page area.
+Sent once after mouse, wheel, key, navigation or resize input stops for 150 ms. No frame is sent
+during active input. Each event carries a JPEG of the visible page area. A later input event replaces
+the pending frame, and a stale screenshot is dropped.
 
 ```ts
 interface BrowserFrame {
@@ -46,8 +47,9 @@ interface BrowserFrame {
 ```
 
 The renderer draws the newest frame in an `<img>` and scales input coordinates by
-`frame.width / viewport.width` before sending `browser:input`. A failed screenshot keeps the last
-frame; no error text reaches the renderer through this channel.
+`frame.width / viewport.width` before sending `browser:input`. Mouse moves are capped at 33 ms in the
+renderer. A failed screenshot keeps the last frame; no error text reaches the renderer through this
+channel.
 
 ## Existing channels
 

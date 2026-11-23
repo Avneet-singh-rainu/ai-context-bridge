@@ -214,4 +214,29 @@ describe('createCdpPage', () => {
       sessionId: 'session-12',
     });
   });
+
+  it('uses Page.getFrameTree when it creates an isolated world', async () => {
+    const { client, socket } = clientWithSocket();
+    preparePageReplies(
+      socket,
+      [{ targetId: 'startup-3', type: 'page', url: 'about:blank' }],
+      'session-13',
+    );
+    socket.autoReplies.set('Page.getFrameTree', {
+      frameTree: { frame: { id: 'frame-13' } },
+    });
+    socket.autoReplies.set('Page.createIsolatedWorld', { executionContextId: 42 });
+    socket.open();
+    const page = await createCdpPage(client);
+    socket.autoReplies.set('Runtime.evaluate', { result: { value: 'Example Domain' } });
+
+    await expect(page.evaluateIsolated(7, 'document.title')).resolves.toBe('Example Domain');
+    expect(socket.sent.map((message) => message.method)).toContain('Page.getFrameTree');
+    expect(
+      socket.sent.find((message) => message.method === 'Page.createIsolatedWorld'),
+    ).toMatchObject({
+      params: { frameId: 'frame-13', worldName: 'context-bridge-7' },
+      sessionId: 'session-13',
+    });
+  });
 });
