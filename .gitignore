@@ -23,7 +23,10 @@ coverage/
 *.lcov
 
 # Editor and OS files
-.vscode/
+# Keep the shared VS Code debug config; ignore other VS Code settings.
+.vscode/*
+!.vscode/launch.json
 .idea/
+.claude/settings.local.json
 .DS_Store
 Thumbs.db

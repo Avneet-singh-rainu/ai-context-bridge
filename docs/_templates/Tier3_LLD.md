@@ -1,11 +1,10 @@
-markdown
 # ISSUE-NNNN - Low-Level Design
 
 <!-- ==========================================================================================
      The ONLY file in this ticket containing implementable detail.
      If it is copy-pasteable into a source file, it belongs here - not in HLD.md.
      Cross-reference HLD.md by heading NAME, never by step number. Numbers get renumbered and
-     the references go stale silently (see C360-44904, where "see LLD step 8" now points at 7).
+     the references go stale silently.
      ========================================================================================== -->
 
 **High-level design:** [HLD.md](HLD.md)
@@ -14,38 +13,39 @@ markdown
 
 | File | Change |
 |------|--------|
-| `Homecare/HomeCare-CS360/...` | |
-| `Database/dbo/Stored Procedures/Procs6/...` | |
+| `src/renderer/src/...` | |
+| `src/main/...` | |
 
-## Database Changes
+## Process Boundaries & IPC
 
-<!-- DDL, indexes, migrations.
-     Rule 7: reads use WITH (NOLOCK).
-     Rule 8: new DB files get a .sqlproj entry, placed in the highest-numbered folder of that
-             type (Procs6, not Procs4).
-     Rule 12: any hardcoded GUID/status id must be verified against real code and real data
-             across every reachable environment, recorded in _systems/Reference_IDs.md, and
-             confirmed with the user before it is relied on. Check Reference_IDs.md first -
-             it may already be verified. -->
+<!-- Which code runs in the main process, the preload script and the renderer. List every new or
+     changed IPC channel and add an IPC_Contracts.md entry for each one.
+     Keep nodeIntegration: false, contextIsolation: true and sandbox: true on every window that
+     shows web content. -->
 
-## Stored Procedure Logic
+## Data Model & Validation
 
-<!-- Name the steps, do not number them. "Tax recompute", not "step 4".
+<!-- New or changed types, and the Zod schema that validates each one. Validate all untrusted
+     input: page DOM, network responses, screenshot files and OCR output. -->
+
+## Logic
+
+<!-- Name the steps, do not number them. "Redact headers", not "step 4".
      Numbering is what breaks cross-references between this file and HLD.md/Test_Cases.md. -->
 
-## API / Method Signatures
+## Privacy & Redaction
 
-<!-- Rule 14: new members go at the END of the existing list/class, never inserted mid-file.
-     Rule 13: follow SOLID. -->
+<!-- What sensitive data this code can see, and how that data is kept out of storage, logs and
+     the exported context package: cookies, authorization headers, tokens, keys, request bodies.
+     Name the size and count limits that apply. -->
 
 ## Edge Cases & Error Handling
 
-<!-- Rule 11: never surface internal exception messages to the UI layer - generic message for
-     anything genuinely unexpected. Hand-written validation messages meant for display pass
-     through as-is. -->
+<!-- Never surface internal exception messages or stack traces in the UI - show a generic message
+     for anything unexpected. Hand-written validation messages meant for display pass through
+     as-is. Report data that could not be captured instead of inventing it. -->
 
 ## Verification / Rollout
 
-<!-- How to prove it works, what to watch after deploy, how to back it out.
+<!-- How to prove it works and how to back it out.
      Reference Test_Cases.md rather than repeating cases here. -->
-

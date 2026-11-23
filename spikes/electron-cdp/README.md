@@ -17,7 +17,9 @@ npm start
 
 Open the repository root in VS Code, open `main.js`, set a breakpoint, then press F5 with the **Electron CDP Spike: Main** configuration selected.
 
-The config lives in `.vscode/launch.json` at the repository root. It runs `electron .` from this folder and captures stdout and stderr in the VS Code Debug Console.
+The config lives in `.vscode/launch.json` at the repository root. It runs `electron .` from this folder and captures stdout and stderr in the VS Code Debug Console. Run `npm install` in this folder first, because the config starts Electron from `node_modules`.
+
+The spike pins Electron `45.4.1`, the version that produced `results.json`.
 
 Do not open Electron DevTools on the same window while debugging this spike. Opening DevTools detaches `webContents.debugger` and stops CDP capture.
 
