@@ -1,10 +1,9 @@
-markdown
 # Templates
 
 Copy these into a new ticket folder. Delete every `<!-- guidance -->` comment as you fill them in.
 
 Ticket folder name: `docs/issue-<id>-<kebab-slug>/`
-Example: `docs/issue-44904-example-task/`
+Example: `docs/issue-3-screenshot-import/`
 
 ## Pick a tier first
 
@@ -15,14 +14,10 @@ Example: `docs/issue-44904-example-task/`
 | **3 - Heavy** | Epic, multi-ticket, or architectural | `ticket.yaml`, `Tier3_HLD.md` -> `HLD.md`, `Tier3_LLD.md` -> `LLD.md`, `adr/`, `CHANGELOG.md`, `Test_Cases.md` |
 
 Add the conditional files only when the ticket actually has something for them to hold:
-`Open_Questions.md`, `Known_Issues.md`, `API_Contracts.md`, `Data_Engineering_Request.md`,
-`Corrections.md`, `scratchpad/`.
+`Open_Questions.md`, `Known_Issues.md`, `IPC_Contracts.md`, `Corrections.md`, `scratchpad/`.
 
-Every **bug** ticket, any tier, also copies `Replication.md`: how to make the bug happen again on
-staging, the result before and after the fix, and a check query. Features skip it.
-
-Any tier that ships code also copies `deployment.yaml`: the DB script, every service to rebuild,
-in order, and every new config key per environment. `[]` means "checked, none".
+Every **bug** ticket, any tier, also copies `Replication.md`: how to make the bug happen again, the
+result before and after the fix, and the evidence that shows the difference. Features skip it.
 
 ## The two rules that matter most
 
@@ -39,7 +34,7 @@ the bottom. Never leave them sitting ahead of the answer. History lives in `CHAN
 
 The boundary is not stylistic. It is what stops the two files duplicating and then diverging.
 
-- **`HLD.md`** - no code, no DDL, no method signatures, no file paths.
+- **`HLD.md`** - no code, no schemas, no method signatures, no file paths.
 - **`LLD.md`** - the only file containing anything implementable. If it is copy-pasteable into a
   source file, it belongs here and nowhere else.
 
@@ -51,5 +46,6 @@ and the references go stale silently.
 - Hard-wrap Markdown at ~100 characters so line diffs stay reviewable.
 - Plain dashes, never em dashes.
 - `ticket.yaml` is the single source of truth for status. Do not repeat status inside the docs.
-- ADRs are append-only. Never edit an accepted ADR - supersede it with a new one.
-
+  Run `node scripts/build-task-index.mjs` after changing a `ticket.yaml`.
+- ADRs are append-only. Never edit an accepted ADR - supersede it with a new one. Project-wide
+  ADRs live in `docs/decisions/`; ticket-level ADRs live in the Tier 3 ticket's `adr/` folder.

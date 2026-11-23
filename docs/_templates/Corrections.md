@@ -1,4 +1,3 @@
-markdown
 # Corrections - ISSUE-NNNN
 
 <!-- Only when a deliberate correction or improvement made during this ticket is later UNDONE -

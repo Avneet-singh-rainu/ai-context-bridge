@@ -1,16 +1,14 @@
-markdown
 # ISSUE-NNNN - High-Level Design
 
 <!-- ==========================================================================================
-     NO code. NO DDL. NO method signatures. NO file paths.
+     NO code. NO schemas. NO method signatures. NO file paths.
      Anything copy-pasteable into a source file belongs in LLD.md and nowhere else.
-     This boundary is what stops HLD and LLD duplicating and then diverging - see C360-208,
-     where splitting design from plan without such a rule produced 55-65% duplication and two
-     conflicting signatures for the same method.
+     This boundary is what stops HLD and LLD duplicating and then drifting into two conflicting
+     versions of the same detail.
      ========================================================================================== -->
 
-**Systems:** [Invoicing_Pipeline](../_systems/Invoicing_Pipeline.md)
-**Related:** [ISSUE-NNNN](../ISSUE-NNNN-slug/HLD.md) (parent epic)
+**Systems:** [browser-capture](../_systems/browser-capture.md)
+**Related:** [issue-<n>](../issue-<n>-<slug>/HLD.md) (parent)
 **Low-level design:** [LLD.md](LLD.md)
 
 ## Context / Problem
@@ -30,8 +28,8 @@ markdown
 
 <!-- Link to _systems/ rather than re-explaining how the system works today.
      If the _systems/ doc is missing or wrong, fix it THERE first, then link.
-     Re-explaining it here is how the same background ends up written from scratch in eight
-     different ticket folders under three different field names. -->
+     Re-explaining it here is how the same background ends up written several times, in
+     slightly different words, across ticket folders. -->
 
 ## Proposed Approach
 
@@ -45,7 +43,7 @@ markdown
 
 ## Impact & Blast Radius
 
-<!-- What else reads or writes the things this touches: reports, SPs, dashboards, exports,
-     downstream integrations. This is the section that catches the thing nobody thought of.
-     Check _systems/Known_Landmines.md before writing it. -->
-
+<!-- What else reads or writes the things this touches: other capture providers, the context
+     data model, the context package format, export, and the privacy rules. This is the section
+     that catches the thing nobody thought of. Check the Limits sections in docs/_systems/
+     before writing it. -->

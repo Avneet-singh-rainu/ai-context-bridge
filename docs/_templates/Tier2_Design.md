@@ -1,10 +1,9 @@
-markdown
 # ISSUE-NNNN - <short title>
 
 <!-- Status lives in ticket.yaml. Do not repeat it here - two copies means one goes stale. -->
 
-**Systems:** [Tax_Model](../_systems/Tax_Model.md)
-**Related:** [ISSUE-NNNN](../ISSUE-NNNN-slug/Design.md) (parent epic)
+**Systems:** [browser-capture](../_systems/browser-capture.md)
+**Related:** [issue-<n>](../issue-<n>-<slug>/Design.md) (parent)
 
 <!-- Systems: every _systems/ doc this touches. This is the reverse index - grep for a
      _systems/ filename and you get every ticket that touched it. Keep it accurate.
