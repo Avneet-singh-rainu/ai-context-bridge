@@ -10,8 +10,6 @@ import {
 import { captureFileName } from '../../../../shared/address';
 import type {
   BrowserCommand,
-  BrowserFrame,
-  BrowserInput,
   BrowserState,
   CaptureResponse,
   PageExtractResponse,
@@ -41,14 +39,10 @@ interface BrowserContextValue {
   /** False outside Electron, where there is no browser view. */
   available: boolean;
   state: BrowserState;
-  /** Latest JPEG frame of the Chrome page, drawn by BrowserWorkspace. */
-  frame: BrowserFrame | null;
   capture: CaptureStatus;
   /** Opens address bar text; resolves to an error message, or null when the page starts loading. */
   navigate: (input: string) => Promise<string | null>;
   command: (command: BrowserCommand) => void;
-  /** Forwards one input event to the page; the renderer never sees CDP. */
-  sendInput: (input: BrowserInput) => void;
   captureScreenshot: () => Promise<void>;
   /** Reads the page's text, headings, tables, and selection into Context. */
   extractPage: () => Promise<void>;
@@ -64,7 +58,6 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
   const { addCapture } = useScreenshots();
   const { addPage } = usePageContent();
   const [state, setState] = useState<BrowserState>(NO_PAGE);
-  const [frame, setFrame] = useState<BrowserFrame | null>(null);
   const [capture, setCapture] = useState<CaptureStatus>({ kind: 'idle' });
   const available = window.bridge !== undefined;
 
@@ -76,11 +69,9 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
       if (active) setState(initial);
     });
     const unsubscribe = api.onBrowserState(setState);
-    const unsubscribeFrames = api.onBrowserFrame(setFrame);
     return () => {
       active = false;
       unsubscribe();
-      unsubscribeFrames();
     };
   }, []);
 
@@ -100,10 +91,6 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
 
   const command = useCallback((name: BrowserCommand) => {
     void window.bridge?.browserCommand(name);
-  }, []);
-
-  const sendInput = useCallback((input: BrowserInput) => {
-    window.bridge?.browserSendInput(input);
   }, []);
 
   const captureScreenshot = useCallback(async () => {
@@ -159,28 +146,8 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
   }, [addPage]);
 
   const value = useMemo(
-    () => ({
-      available,
-      state,
-      frame,
-      capture,
-      navigate,
-      command,
-      sendInput,
-      captureScreenshot,
-      extractPage,
-    }),
-    [
-      available,
-      state,
-      frame,
-      capture,
-      navigate,
-      command,
-      sendInput,
-      captureScreenshot,
-      extractPage,
-    ],
+    () => ({ available, state, capture, navigate, command, captureScreenshot, extractPage }),
+    [available, state, capture, navigate, command, captureScreenshot, extractPage],
   );
 
   return <BrowserContext.Provider value={value}>{children}</BrowserContext.Provider>;
