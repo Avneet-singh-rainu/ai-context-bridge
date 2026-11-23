@@ -1,0 +1,17 @@
+# Single source of truth for this ticket's status. docs/README.md is generated from these files:
+# run `node scripts/build-task-index.mjs` after any change here.
+# Update `status` and `updated` in the same pass as the work itself.
+# A status that has not moved in 30 days is a bug, not a state.
+
+ticket: issue-11
+title: Replace the Electron page engine with headless Chrome over CDP
+status: In Progress
+blocked_reason:
+tier: 3
+
+systems: [browser, browser-capture]
+
+parent:
+children: []
+
+updated: 2026-11-23
