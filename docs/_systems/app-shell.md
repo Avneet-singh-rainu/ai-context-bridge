@@ -29,12 +29,10 @@ electron-vite builds each part into `out/main/`, `out/preload/`, and `out/render
   and have unit tests. Main never opens a file path that the renderer sends; the renderer sends
   bytes, and file paths come only from a dialog the user answers.
 - Channels today: `app:get-info` (issue-3), `ocr:recognize` and `context:save` (issue-5), and
-  the `browser:*` and `network:*` channels (issues 6 to 8 and 11, see [Browser](./browser.md)).
-  `browser:state`, `browser:frame` and `network:state` are main-to-renderer events; the preload
-  wraps them so the renderer never sees the IPC event object.
-- Web pages run in an installed Chrome process driven by CDP, not in a second Electron web
-  contents. The renderer draws JPEG frames inside `.browser-viewport` and sends input events back;
-  the main process owns Chrome, the CDP socket and the profile. See [Browser](./browser.md).
+  the `browser:*` channels (issue-6, see [Browser](./browser.md)). `browser:state` is the only
+  main-to-renderer event; the preload wraps it so the renderer never sees the IPC event object.
+- The window holds a second web contents: the built-in browser's `WebContentsView`, drawn on top
+  of the app page, with no preload and its own session.
 - Pure code used by both main and renderer lives in `src/shared/` (the IPC contract,
   `image-format.ts`, `address.ts`, `page-content.ts`, and `redact.ts`).
 - The app window denies new windows and blocks navigation away from its own page.
