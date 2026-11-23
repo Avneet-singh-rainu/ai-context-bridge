@@ -4,6 +4,8 @@ import { type BridgeApi, IPC_CHANNELS } from '../shared/ipc-contract';
 // The only bridge between the renderer and the main process. Keep the API small and typed.
 const bridge: BridgeApi = {
   getAppInfo: () => ipcRenderer.invoke(IPC_CHANNELS.getAppInfo),
+  recognizeText: (request) => ipcRenderer.invoke(IPC_CHANNELS.recognizeText, request),
+  saveContextPackage: (request) => ipcRenderer.invoke(IPC_CHANNELS.saveContextPackage, request),
 };
 
 contextBridge.exposeInMainWorld('bridge', bridge);

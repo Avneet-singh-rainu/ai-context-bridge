@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import { app, BrowserWindow } from 'electron';
 import { registerIpcHandlers } from './ipc';
+import { stopTesseract } from './ocr/tesseract-ocr';
 import { createMainWindowOptions } from './window-options';
 
 function createMainWindow(): BrowserWindow {
@@ -33,3 +34,6 @@ void app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => app.quit());
+app.on('will-quit', () => {
+  void stopTesseract();
+});

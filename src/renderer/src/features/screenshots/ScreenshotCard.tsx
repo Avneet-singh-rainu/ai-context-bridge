@@ -1,10 +1,13 @@
 import { formatBytes, type ImageFormat } from './image-validation';
 import type { Screenshot } from './import-screenshots';
+import { describeOcr } from './ocr-status';
+import type { OcrEntry } from './ocr-store';
 
 const FORMAT_LABELS: Record<ImageFormat, string> = { png: 'PNG', jpeg: 'JPG', webp: 'WEBP' };
 
 interface ScreenshotCardProps {
   screenshot: Screenshot;
+  ocr: OcrEntry | undefined;
   index: number;
   total: number;
   onMove: (id: string, toIndex: number) => void;
@@ -13,6 +16,7 @@ interface ScreenshotCardProps {
 
 export function ScreenshotCard({
   screenshot,
+  ocr,
   index,
   total,
   onMove,
@@ -34,6 +38,9 @@ export function ScreenshotCard({
       </p>
       <p className="shot-meta">
         {width} x {height} - {formatBytes(sizeBytes)} - {FORMAT_LABELS[format]}
+      </p>
+      <p className="shot-ocr" data-status={ocr?.status ?? 'none'} title={ocr?.error}>
+        {describeOcr(ocr)}
       </p>
       <div className="shot-actions">
         <button

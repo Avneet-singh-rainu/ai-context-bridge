@@ -10,3 +10,4 @@ ticket.yaml.
 | [issue-2](./issue-2-electron-feasibility/) | Prove Electron browser and network capture path | Shipped | 2 | 2026-11-22 |
 | [issue-3](./issue-3-electron-shell/) | [M1] Scaffold Electron + React + TypeScript shell | In Progress | 2 | 2026-11-23 |
 | [issue-4](./issue-4-screenshot-import/) | [M2] Import and manage screenshots | In Progress | 2 | 2026-11-23 |
+| [issue-5](./issue-5-ocr-export/) | [M3] Add local OCR and context export | In Progress | 2 | 2026-11-23 |

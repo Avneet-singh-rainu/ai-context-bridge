@@ -22,6 +22,12 @@ electron-vite builds each part into `out/main/`, `out/preload/`, and `out/render
 - A new IPC channel needs three edits: the name and types in `src/shared/ipc-contract.ts`, a
   handler in `src/main/ipc.ts`, and a method in `src/preload/index.ts`. The ticket also adds an
   `IPC_Contracts.md` entry.
+- Main treats every IPC payload as untrusted. Payload checks live in `src/main/ipc-requests.ts`
+  and have unit tests. Main never opens a file path that the renderer sends; the renderer sends
+  bytes, and file paths come only from a dialog the user answers.
+- Channels today: `app:get-info` (issue-3), `ocr:recognize` and `context:save` (issue-5).
+- Pure code used by both main and renderer lives in `src/shared/` (the IPC contract and
+  `image-format.ts`).
 - The app window denies new windows and blocks navigation away from its own page.
 - `src/renderer/index.html` sets a Content Security Policy that allows scripts from the app only.
   Images may come from the app or `data:` URLs; `fetch` and other connections fall back to
@@ -46,6 +52,9 @@ electron-vite builds each part into `out/main/`, `out/preload/`, and `out/render
 - `npm run build` type-checks, then writes `out/`.
 - `npm run dist` builds, then electron-builder writes `dist/AI-Context-Bridge-Setup-<version>.exe`
   (NSIS, x64, unsigned, default icon).
+- electron-vite leaves `dependencies` out of the main bundle; electron-builder packs them into
+  `app.asar`. The only runtime dependencies are tesseract.js and its English model (see
+  [OCR](./ocr.md)); everything else is a dev dependency.
 
 ## Versions
 
