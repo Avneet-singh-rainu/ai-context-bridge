@@ -76,6 +76,21 @@ describe('CdpClient', () => {
     await expect(request).rejects.toThrow('Cannot navigate');
   });
 
+  it('rejects a command with no reply after its timeout and clears the pending entry', async () => {
+    const { client, socket } = clientWithSocket();
+    socket.open();
+
+    await expect(client.send('Page.captureScreenshot', {}, undefined, 20)).rejects.toThrow(
+      'did not reply in time',
+    );
+
+    socket.autoReplies.set('Runtime.evaluate', { value: 1 });
+    await expect(client.send('Runtime.evaluate', { expression: '1' })).resolves.toEqual({
+      value: 1,
+    });
+    expect(socket.sent.map((message) => message.id)).toEqual([1, 2]);
+  });
+
   it('fans out only events with a subscribed method name', () => {
     const { client, socket } = clientWithSocket();
     const handler = vi.fn();

@@ -57,6 +57,7 @@ describe('chromeLaunchArgs', () => {
 
     expect(args).toContain('--headless=new');
     expect(args).toContain('--disable-blink-features=AutomationControlled');
+    expect(args).toContain('--disable-features=SigninInterception');
     expect(args).toContain('--remote-debugging-port=0');
     expect(args).toContain('--user-data-dir=C:\\AppData\\chrome-profile');
     // No broad origin flag: a Node WebSocket sends no Origin header, so Chrome accepts it.
