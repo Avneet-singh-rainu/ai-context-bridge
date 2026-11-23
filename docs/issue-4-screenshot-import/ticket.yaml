@@ -1,0 +1,9 @@
+ticket: issue-4
+title: "[M2] Import and manage screenshots"
+status: In Progress
+blocked_reason:
+tier: 2
+systems: [screenshots, app-shell]
+parent:
+children: []
+updated: 2026-11-23

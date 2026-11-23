@@ -1,6 +1,6 @@
 # Project instructions
 
-These instructions apply to this repository only. The original personal rules are archived in `.opencode/kit/global/CLAUDE.md`.
+These instructions apply to this repository only. The rules come from a personal setup kit; [docs/OPENCODE_SETUP.md](docs/OPENCODE_SETUP.md) records what was kept from the kit and what was removed.
 
 ## 1. Name the noun. Do not lean on pronouns.
 
@@ -35,6 +35,7 @@ paragraphs. Do not repeat the same point in different words, and do not add back
 This applies to chat replies. Files, design documents and ADRs can still carry full detail.
 
 ## 3. Use plain dashes, never em dashes.
+
 ## 4. Ask with a question popup when a decision is needed
 
 When the user must choose between options, use the question tool (a popup) instead of a plain-text question. The user can miss or forget inline questions.
@@ -48,3 +49,14 @@ Ask before running git commands that change remote or branch state. Read-only in
 When a task changes files on disk, finish with the list of files changed.
 
 ## 7. Task documentation
+
+Every GitHub issue gets a folder `docs/issue-<n>-<kebab-slug>/`. The full rules live in
+[docs/_templates/README.md](docs/_templates/README.md). The short version:
+
+- Pick a tier first (1 trivial, 2 standard, 3 heavy). The tier decides which template files to copy.
+- `ticket.yaml` is the only place that holds a task's status. After changing any `ticket.yaml`,
+  run `node scripts/build-task-index.mjs` to rebuild the task table in `docs/README.md`.
+- A fact that stays true after the issue closes goes in `docs/_systems/`. The issue folder links to
+  the `_systems/` doc instead of repeating the fact.
+- Design docs describe the current state only. History goes in `CHANGELOG.md`.
+- Never edit an accepted ADR. Write a new ADR that supersedes the old ADR.

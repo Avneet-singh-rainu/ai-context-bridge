@@ -1,0 +1,9 @@
+ticket: issue-7
+title: "[M5] Extract active-page DOM content"
+status: In Progress
+blocked_reason:
+tier: 2
+systems: [page-content, browser, context-package]
+parent:
+children: []
+updated: 2026-11-23
