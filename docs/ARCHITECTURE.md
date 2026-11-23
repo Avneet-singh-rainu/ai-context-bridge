@@ -34,11 +34,13 @@ Markdown package to paste. See the [product brief](./PRODUCT_BRIEF.md).
 
 ## Technology
 
-Electron 45 hosts the app and the built-in browser; React 19 and TypeScript 7 render the UI;
-electron-vite builds it and electron-builder packages an NSIS installer for Windows x64. The
-handoff's Tauri and WebView2 plan was replaced after the feasibility check; see
-[ADR 0001](./decisions/0001-stack-selection.md). The feasibility spike proved the network capture
-path, response bodies, DOM extraction, and isolation; network recording now uses that path
+Electron 45 hosts the app UI; React 19 and TypeScript 7 render the UI; electron-vite builds it and
+electron-builder packages an NSIS installer for Windows x64. Web pages run in an installed Google
+Chrome driven by the Chrome DevTools Protocol, not in Electron. The handoff's Tauri and WebView2
+plan was replaced after the feasibility check ([ADR 0001](./decisions/0001-stack-selection.md));
+the browser host later moved from Electron to Chrome so Google sign-in works
+([ADR 0002](./decisions/0002-chrome-cdp-browser.md)). The feasibility spike proved the network
+capture path, response bodies, DOM extraction, and isolation; network recording now uses that path
 ([browser capture](./_systems/browser-capture.md)).
 
 ## System context
@@ -55,7 +57,7 @@ flowchart LR
   chat([AI chat, outside the app])
 
   user -->|screenshots, browsing, review| app
-  app -->|pages load in the built-in browser| web
+  app -->|pages load in installed Chrome, shown as frames| web
   app -->|only when words are typed in the address bar| ddg
   app -->|text recognition on this PC| ocr
   files -->|PNG, JPG, WEBP| app

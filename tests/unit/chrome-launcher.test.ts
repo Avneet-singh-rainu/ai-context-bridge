@@ -57,7 +57,8 @@ describe('chromeLaunchArgs', () => {
     expect(args).toContain('--headless=new');
     expect(args).toContain('--remote-debugging-port=0');
     expect(args).toContain('--user-data-dir=C:\\AppData\\chrome-profile');
-    expect(args).toContain('--remote-allow-origins=*');
+    // No broad origin flag: a Node WebSocket sends no Origin header, so Chrome accepts it.
+    expect(args).not.toContain('--remote-allow-origins=*');
   });
 });
 

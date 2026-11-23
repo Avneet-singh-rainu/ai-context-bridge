@@ -8,12 +8,12 @@ The Electron CDP spike in `spikes/electron-cdp/` first proved the path.
 ## Capture path
 
 - The recorder uses the Chrome DevTools Protocol (CDP, Chrome's event and command interface) on
-  the browser view's `webContents` (see [Browser](./browser.md)).
-- `webContents.debugger.attach('1.3')` runs only when the user clicks **Record network**, and the
-  debugger is detached when the session ends. Nothing is observed outside a session.
-- `Network.enable` starts the CDP Network domain with `maxResourceBufferSize` (1 MB plus 64 KB)
-  and `maxTotalBufferSize` (32 MB), so Chromium does not hold huge bodies. The command can wait
-  until the page does something, so the recorder waits at most one second for it.
+  the Chrome page that the app drives (see [Browser](./browser.md)).
+- The Network domain is enabled when the page attaches, with `maxResourceBufferSize` (1 MB plus
+  64 KB) and `maxTotalBufferSize` (32 MB), so Chromium does not hold huge bodies. The recorder
+  subscribes to page events only while a session runs, so nothing enters the app outside a session.
+- The recorder does not attach or detach a debugger. It adds and removes CDP event handlers on the
+  page when the user clicks Record network and Stop.
 - `Network.requestWillBeSent` gives the method, URL, and request type; `Network.responseReceived`
   gives the status and MIME type; after `Network.loadingFinished` for the same request,
   `Network.getResponseBody` returns the body. Calling it earlier can fail with "No resource with
@@ -22,8 +22,8 @@ The Electron CDP spike in `spikes/electron-cdp/` first proved the path.
 
 ## Session rules
 
-- A session starts on Record network and ends on Stop, on navigation to another origin, or when
-  the debugger detaches. The page is not reloaded automatically; a notice offers Reload.
+- A session starts on Record network and ends on Stop or on navigation to another origin. The page
+  is not reloaded automatically; a notice offers Reload.
 - Kept entries outlive the session. A later session merges into them; Clear all removes them.
 - State goes to the renderer on the `network:state` event, throttled to one push every 300 ms
   while responses arrive ([issue-8 IPC contracts](../issue-8-network-capture/IPC_Contracts.md)).
@@ -46,11 +46,12 @@ The Electron CDP spike in `spikes/electron-cdp/` first proved the path.
 
 ## Isolation
 
-- The browser view has `nodeIntegration: false`, `contextIsolation: true`, and `sandbox: true`,
-  and no preload. The spike probe found `require`, `process`, `module`, and `window.electronAPI`
-  all `undefined` in the page world.
-- Opening Chromium DevTools on the browser view detaches `webContents.debugger` and ends the
-  session. The app's code has no command that opens DevTools on the view.
+- The app window has `nodeIntegration: false`, `contextIsolation: true`, and `sandbox: true`. The
+  renderer never receives the CDP socket; the CDP event handlers run in the trusted main process.
+- Web pages run in a separate Chrome process with their own persistent profile. Page scripts have
+  no preload bridge and no Node. The earlier Electron spike probe found `require`, `process`,
+  `module`, and `window.electronAPI` all `undefined` in the page world; the Chrome process gives
+  pages no app bridge at all.
 
 ## Limits
 
