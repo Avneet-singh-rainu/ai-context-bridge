@@ -3,6 +3,7 @@ import {
   CHROME_OVERRIDE_ENV,
   chromeCandidates,
   chromeLaunchArgs,
+  clearStaleDevToolsPort,
   findChromeExecutable,
   parseDevToolsActivePort,
   waitForDevToolsEndpoint,
@@ -75,6 +76,16 @@ describe('parseDevToolsActivePort', () => {
     expect(() => parseDevToolsActivePort('not-a-port\n/devtools/browser/abc')).toThrow(
       'invalid debugging port',
     );
+  });
+});
+
+describe('clearStaleDevToolsPort', () => {
+  it('removes the port file left by a previous Chrome session', async () => {
+    const removeFile = vi.fn(async (_filePath: string): Promise<void> => undefined);
+
+    await clearStaleDevToolsPort('C:\\AppData\\chrome-profile', removeFile);
+
+    expect(removeFile).toHaveBeenCalledWith('C:\\AppData\\chrome-profile\\DevToolsActivePort');
   });
 });
 
