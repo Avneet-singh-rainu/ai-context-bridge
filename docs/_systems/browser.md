@@ -57,6 +57,11 @@ asks for a repaint and retries up to three times. The PNG goes back to the rende
 same import checks, with its source page (URL, title, time) attached. See
 [Screenshots](./screenshots.md) and [Context package](./context-package.md).
 
+## Extract page text
+
+**Extract page text** reads the active page's text, headings, tables, and selected text into
+Context, with limits and secret redaction. See [Page content](./page-content.md).
+
 ## Limits
 
 - One page at a time; there are no tabs.

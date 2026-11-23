@@ -5,6 +5,8 @@ import type { Screenshot } from '../screenshots/import-screenshots';
 import { describeOcr } from '../screenshots/ocr-status';
 import { needsExtraction, type OcrEntry } from '../screenshots/ocr-store';
 import { useScreenshots } from '../screenshots/ScreenshotsProvider';
+import { usePageContent } from './PageContentProvider';
+import { PageEditor } from './PageEditor';
 
 interface Notice {
   kind: 'ok' | 'error';
@@ -70,6 +72,8 @@ function TextEditor({ screenshot, entry, position, onEdit, onRestore }: TextEdit
 
 export function ContextWorkspace() {
   const { screenshots, ocr, editText, restoreText } = useScreenshots();
+  const { pages, editPage, restorePage, removePage } = usePageContent();
+  const isEmpty = screenshots.length === 0 && pages.length === 0;
   const [notice, setNotice] = useState<Notice | null>(null);
   const canSave = window.bridge !== undefined;
   const pending = screenshots.filter((shot) => needsExtraction(ocr[shot.id])).length;
@@ -79,8 +83,18 @@ export function ContextWorkspace() {
       buildContextMarkdown(
         screenshots.map((shot) => ({ ...shot, ocr: ocr[shot.id] })),
         new Date(),
+        pages.map((page) => ({
+          url: page.extract.url,
+          title: page.extract.title,
+          extractedAt: page.extract.extractedAt,
+          selection: page.selection,
+          originalSelection: page.extract.selection,
+          markdown: page.markdown,
+          originalMarkdown: page.extract.markdown,
+          stats: page.extract.stats,
+        })),
       ),
-    [screenshots, ocr],
+    [screenshots, ocr, pages],
   );
 
   const copy = async () => {
@@ -119,7 +133,7 @@ export function ContextWorkspace() {
             type="button"
             className="secondary-button"
             onClick={() => void save()}
-            disabled={!canSave || screenshots.length === 0}
+            disabled={!canSave || isEmpty}
             title={canSave ? undefined : 'Needs the desktop app'}
           >
             Save as Markdown
@@ -128,7 +142,7 @@ export function ContextWorkspace() {
             type="button"
             className="primary-button"
             onClick={() => void copy()}
-            disabled={screenshots.length === 0}
+            disabled={isEmpty}
           >
             Copy to clipboard
           </button>
@@ -143,9 +157,10 @@ export function ContextWorkspace() {
         )}
       </div>
 
-      {screenshots.length === 0 ? (
+      {isEmpty ? (
         <p className="context-empty">
-          No screenshots yet. Add screenshots in the Screenshots view, then extract their text.
+          Nothing collected yet. Add screenshots in the Screenshots view, or open a page in Browser
+          and use Extract page text.
         </p>
       ) : (
         <>
@@ -160,20 +175,41 @@ export function ContextWorkspace() {
             </div>
           )}
           <div className="context-columns">
-            <div>
-              <h2>Extracted text</h2>
-              <ol className="text-editor-list">
-                {screenshots.map((screenshot, index) => (
-                  <TextEditor
-                    key={screenshot.id}
-                    screenshot={screenshot}
-                    entry={ocr[screenshot.id]}
-                    position={index + 1}
-                    onEdit={editText}
-                    onRestore={restoreText}
-                  />
-                ))}
-              </ol>
+            <div className="context-sources">
+              {screenshots.length > 0 && (
+                <>
+                  <h2>Screenshot text</h2>
+                  <ol className="text-editor-list">
+                    {screenshots.map((screenshot, index) => (
+                      <TextEditor
+                        key={screenshot.id}
+                        screenshot={screenshot}
+                        entry={ocr[screenshot.id]}
+                        position={index + 1}
+                        onEdit={editText}
+                        onRestore={restoreText}
+                      />
+                    ))}
+                  </ol>
+                </>
+              )}
+              {pages.length > 0 && (
+                <>
+                  <h2>Browser pages</h2>
+                  <ol className="text-editor-list">
+                    {pages.map((page, index) => (
+                      <PageEditor
+                        key={page.id}
+                        page={page}
+                        position={index + 1}
+                        onEdit={editPage}
+                        onRestore={restorePage}
+                        onRemove={removePage}
+                      />
+                    ))}
+                  </ol>
+                </>
+              )}
             </div>
             <div>
               <h2>Markdown package</h2>

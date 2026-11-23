@@ -46,7 +46,8 @@ function useBrowserViewBounds(viewport: React.RefObject<HTMLDivElement | null>) 
 }
 
 export function BrowserWorkspace() {
-  const { available, state, capture, navigate, command, captureScreenshot } = useBrowser();
+  const { available, state, capture, navigate, command, captureScreenshot, extractPage } =
+    useBrowser();
   const viewportRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState(state.url);
   const [editing, setEditing] = useState(false);
@@ -71,7 +72,8 @@ export function BrowserWorkspace() {
     if (focused instanceof HTMLElement) focused.blur();
   };
 
-  const canCapture = state.hasPage && !state.isLoading && capture.kind !== 'capturing';
+  const busy = capture.kind === 'capturing' || capture.kind === 'extracting';
+  const canCapture = state.hasPage && !state.isLoading && !busy;
 
   return (
     <section className="workspace browser-workspace" aria-label="Browser">
@@ -125,6 +127,15 @@ export function BrowserWorkspace() {
         </button>
         <button
           type="button"
+          className="secondary-button"
+          disabled={!canCapture}
+          title="Read the page's text, headings, tables, and selected text into Context"
+          onClick={() => void extractPage()}
+        >
+          Extract page text
+        </button>
+        <button
+          type="button"
           className="primary-button"
           disabled={!canCapture}
           onClick={() => void captureScreenshot()}
@@ -174,7 +185,8 @@ export function BrowserWorkspace() {
               separate from the app.
             </span>
             <span>
-              Capture screenshot adds the visible page to Screenshots, ready for text extraction.
+              Capture screenshot adds the visible page to Screenshots. Extract page text adds the
+              page's text, headings, tables, and selected text to Context.
             </span>
           </div>
         )}

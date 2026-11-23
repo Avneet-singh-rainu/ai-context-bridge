@@ -12,13 +12,17 @@ import type {
   BrowserCommand,
   BrowserState,
   CaptureResponse,
+  PageExtractResponse,
 } from '../../../../shared/ipc-contract';
+import { usePageContent } from '../context/PageContentProvider';
 import { useScreenshots } from '../screenshots/ScreenshotsProvider';
 
 export type CaptureStatus =
   | { kind: 'idle' }
   | { kind: 'capturing' }
   | { kind: 'captured'; fileName: string }
+  | { kind: 'extracting' }
+  | { kind: 'extracted'; title: string; characters: number }
   | { kind: 'failed'; error: string };
 
 const NO_PAGE: BrowserState = {
@@ -40,6 +44,8 @@ interface BrowserContextValue {
   navigate: (input: string) => Promise<string | null>;
   command: (command: BrowserCommand) => void;
   captureScreenshot: () => Promise<void>;
+  /** Reads the page's text, headings, tables, and selection into Context. */
+  extractPage: () => Promise<void>;
 }
 
 const BrowserContext = createContext<BrowserContextValue | null>(null);
@@ -50,6 +56,7 @@ const BrowserContext = createContext<BrowserContextValue | null>(null);
  */
 export function BrowserProvider({ children }: { children: ReactNode }) {
   const { addCapture } = useScreenshots();
+  const { addPage } = usePageContent();
   const [state, setState] = useState<BrowserState>(NO_PAGE);
   const [capture, setCapture] = useState<CaptureStatus>({ kind: 'idle' });
   const available = window.bridge !== undefined;
@@ -70,7 +77,7 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
 
   // "Added ..." stays visible for a few seconds, then the capture state goes back to idle.
   useEffect(() => {
-    if (capture.kind !== 'captured') return;
+    if (capture.kind !== 'captured' && capture.kind !== 'extracted') return;
     const timer = setTimeout(() => setCapture({ kind: 'idle' }), 6000);
     return () => clearTimeout(timer);
   }, [capture]);
@@ -115,9 +122,32 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
     }
   }, [addCapture]);
 
+  const extractPage = useCallback(async () => {
+    const api = window.bridge;
+    if (!api) return;
+    setCapture({ kind: 'extracting' });
+    const response = await api
+      .browserExtract()
+      .catch((): PageExtractResponse => ({ ok: false, error: 'The page could not be read.' }));
+    if (!response.ok) {
+      setCapture({ kind: 'failed', error: response.error });
+      return;
+    }
+    const error = addPage(response.page);
+    if (error) {
+      setCapture({ kind: 'failed', error });
+      return;
+    }
+    setCapture({
+      kind: 'extracted',
+      title: response.page.title || response.page.url,
+      characters: response.page.stats.characters,
+    });
+  }, [addPage]);
+
   const value = useMemo(
-    () => ({ available, state, capture, navigate, command, captureScreenshot }),
-    [available, state, capture, navigate, command, captureScreenshot],
+    () => ({ available, state, capture, navigate, command, captureScreenshot, extractPage }),
+    [available, state, capture, navigate, command, captureScreenshot, extractPage],
   );
 
   return <BrowserContext.Provider value={value}>{children}</BrowserContext.Provider>;
@@ -133,6 +163,10 @@ export function useBrowser(): BrowserContextValue {
 export function describeCapture(capture: CaptureStatus): string {
   if (capture.kind === 'capturing') return 'Capturing the page...';
   if (capture.kind === 'captured') return `Added ${capture.fileName} to Screenshots`;
-  if (capture.kind === 'failed') return `Capture failed: ${capture.error}`;
+  if (capture.kind === 'extracting') return 'Reading the page...';
+  if (capture.kind === 'extracted') {
+    return `Added page text from "${capture.title}" to Context (${capture.characters} characters)`;
+  }
+  if (capture.kind === 'failed') return `Failed: ${capture.error}`;
   return 'Idle';
 }

@@ -5,6 +5,7 @@ import { StatusBar } from './components/StatusBar';
 import { BrowserProvider } from './features/browser/BrowserProvider';
 import { BrowserWorkspace } from './features/browser/BrowserWorkspace';
 import { ContextWorkspace } from './features/context/ContextWorkspace';
+import { PageContentProvider } from './features/context/PageContentProvider';
 import { ScreenshotsProvider } from './features/screenshots/ScreenshotsProvider';
 import { ScreenshotsWorkspace } from './features/screenshots/ScreenshotsWorkspace';
 
@@ -20,15 +21,17 @@ export function App() {
 
   return (
     <ScreenshotsProvider>
-      <BrowserProvider>
-        <div className="app-shell">
-          <Sidebar items={NAV_ITEMS} activeView={activeView} onSelect={setActiveView} />
-          <main className="app-main">
-            <ActiveWorkspace />
-          </main>
-          <StatusBar />
-        </div>
-      </BrowserProvider>
+      <PageContentProvider>
+        <BrowserProvider>
+          <div className="app-shell">
+            <Sidebar items={NAV_ITEMS} activeView={activeView} onSelect={setActiveView} />
+            <main className="app-main">
+              <ActiveWorkspace />
+            </main>
+            <StatusBar />
+          </div>
+        </BrowserProvider>
+      </PageContentProvider>
     </ScreenshotsProvider>
   );
 }

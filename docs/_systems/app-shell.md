@@ -31,7 +31,7 @@ electron-vite builds each part into `out/main/`, `out/preload/`, and `out/render
 - The window holds a second web contents: the built-in browser's `WebContentsView`, drawn on top
   of the app page, with no preload and its own session.
 - Pure code used by both main and renderer lives in `src/shared/` (the IPC contract,
-  `image-format.ts`, and `address.ts`).
+  `image-format.ts`, `address.ts`, `page-content.ts`, and `redact.ts`).
 - The app window denies new windows and blocks navigation away from its own page.
 - `src/renderer/index.html` sets a Content Security Policy that allows scripts from the app only.
   Images may come from the app or `data:` URLs; `fetch` and other connections fall back to

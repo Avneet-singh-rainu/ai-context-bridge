@@ -2,7 +2,14 @@ import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import { type AppInfo, IPC_CHANNELS, type SaveContextResponse } from '../shared/ipc-contract';
-import { capture, getState, navigate, runCommand, setBounds } from './browser/browser-view';
+import {
+  capture,
+  extractPage,
+  getState,
+  navigate,
+  runCommand,
+  setBounds,
+} from './browser/browser-view';
 import { parseSaveRequest, sanitizeFileName } from './ipc-requests';
 import { recognizeImage } from './ocr/ocr-service';
 
@@ -56,5 +63,6 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.browserCommand, (_event, command: unknown) => runCommand(command));
   ipcMain.handle(IPC_CHANNELS.browserGetState, () => getState());
   ipcMain.handle(IPC_CHANNELS.browserCapture, () => capture());
+  ipcMain.handle(IPC_CHANNELS.browserExtract, () => extractPage());
   ipcMain.on(IPC_CHANNELS.browserSetBounds, (_event, bounds: unknown) => setBounds(bounds));
 }

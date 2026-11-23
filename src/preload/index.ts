@@ -11,6 +11,7 @@ const bridge: BridgeApi = {
   browserSetBounds: (bounds) => ipcRenderer.send(IPC_CHANNELS.browserSetBounds, bounds),
   browserGetState: () => ipcRenderer.invoke(IPC_CHANNELS.browserGetState),
   browserCapture: () => ipcRenderer.invoke(IPC_CHANNELS.browserCapture),
+  browserExtract: () => ipcRenderer.invoke(IPC_CHANNELS.browserExtract),
   onBrowserState: (listener) => {
     // Pass only the state on: the renderer never sees the IPC event object.
     const handler = (_event: IpcRendererEvent, state: BrowserState) => listener(state);

@@ -12,3 +12,4 @@ ticket.yaml.
 | [issue-4](./issue-4-screenshot-import/) | [M2] Import and manage screenshots | In Progress | 2 | 2026-11-23 |
 | [issue-5](./issue-5-ocr-export/) | [M3] Add local OCR and context export | In Progress | 2 | 2026-11-23 |
 | [issue-6](./issue-6-in-app-browser/) | [M4] Build the in-app browser | In Progress | 2 | 2026-11-23 |
+| [issue-7](./issue-7-page-content/) | [M5] Extract active-page DOM content | In Progress | 2 | 2026-11-23 |
