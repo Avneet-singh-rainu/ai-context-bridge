@@ -2,7 +2,7 @@
 
 ## 1. Screenshot OCR text is not redacted
 
-**Status:** Not fixed - needs its own bug ticket
+**Status:** Fixed in issue-9 - the export now redacts every source, OCR text included
 
 **Found:** 2026-11-23
 

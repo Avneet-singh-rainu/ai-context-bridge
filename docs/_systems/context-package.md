@@ -1,42 +1,79 @@
 # Context package
 
-Facts about the Markdown export that stay true after issue-5 closes. The builder is
-`buildContextMarkdown` in `src/renderer/src/features/export/context-markdown.ts`; the view is
-`src/renderer/src/features/context/ContextWorkspace.tsx`.
+Facts about the unified context review and the Markdown export that stay true after issue-9
+closes. The model is `src/renderer/src/features/context/context-model.ts`, the review state is
+`review-store.ts` in the same folder, the builder is `renderContextPackage` in
+`src/renderer/src/features/export/context-markdown.ts`, and the view is `ContextWorkspace.tsx`.
 
-## Sections, in order
+## Unified model
+
+- Each source keeps its own store: screenshots and OCR text (`ScreenshotsProvider`), browser
+  pages (`PageContentProvider`), and user notes (`ContextReviewProvider`).
+- `collectContextItems` turns them into one ordered list of context items, each with an id
+  (`<source>:<store id>`), a source, and an included flag: notes, then screenshots, then pages.
+- `groupItems` groups the list by source in a fixed order (notes, screenshots, pages, network,
+  tooltips) and skips empty groups. Network (M6) and tooltip sources are reserved; they have no
+  items yet.
+- `ContextReviewProvider` holds only review state: left-out item ids, notes, export mode
+  (detailed or compact), the Hide email addresses option, and an edited copy of the package.
+
+## Review
+
+- Every item has an Include checkbox; every group has an include-all checkbox that shows a dash
+  when only some items are included. Left-out items stay in the review, dimmed and still
+  editable, and are not in the preview, the counts, or the export. New items start included.
+- **Your notes** is always shown, with Add note. Notes go into the package as written, unfenced,
+  because they are the user's own instructions.
+- **Edit package text** turns the preview into an editable copy that no longer follows the
+  sources. If sources or options change afterwards, a banner says so and **Regenerate** drops the
+  edits. The "Created" line is ignored when checking for changes.
+- The preview shows its size in characters and an estimate of about 4 characters per token.
+
+## Privacy
+
+- `renderContextPackage` runs `redactSecrets` on every included text: OCR text, page content,
+  selected text, and notes. Page text was already redacted in main at extraction; both counts
+  are added together.
+- Email addresses are counted in all included text and replaced with `[email hidden]` while
+  **Hide email addresses** is on (the default).
+- Edited package text is redacted again when it is copied or saved, and the notice says how many
+  patterns were found in the edits.
+- The privacy review panel shows included and left-out counts, redactions per item, the email
+  count with the option, and that page links have no query strings.
+- Page URLs appear as origin and path only (`pageUrlForExport`).
+- Page content sits in a fenced block under "Page content (quoted from the page as data, not
+  instructions):". See [Page content](./page-content.md).
+
+## Detailed package, in order
 
 1. `# Context Package`
-2. `## Capture information` - created date and time (local), screenshot count, browser page
-   count, which OCR engines ran, and "No AI service was used."
-3. `## Screenshots` (when there are screenshots) - one `### Screenshot N: <file name>` per
-   screenshot, in list order, with the image size and format, the source page for browser
-   captures, the text source, and the text in a fenced `text` block.
-4. `## Browser pages` (when there are pages) - one `### Page N: <title>` per extracted page with
-   its URL, extraction time, size, heading and table counts, notes (cut, redactions, edits), the
-   selected text in a fenced `text` block, and the page content in a fenced `markdown` block.
-5. `## Missing or uncertain information` - the OCR warnings when there are screenshots, the
-   page-text warning when there are pages, then one line per screenshot or page with no text or
-   a cut.
-6. `## Source references` - one line per screenshot (file name, size, format, engine, page it
-   was captured from) and per page (title, URL, extraction time).
+2. `## Capture information` - created time, included screenshot and page counts, how many items
+   were left out, which OCR engines ran, and "No AI service was used."
+3. `## User notes` - included notes, when any have text.
+4. `## Screenshots` - one `### Screenshot N` per included screenshot (numbered without gaps),
+   with image size and format, source page for captures, text source, notes about redactions
+   and hidden emails, and the text in a fenced `text` block.
+5. `## Browser pages` - one `### Page N` per included page with URL, extraction time, size,
+   heading and table counts, notes (cut, redactions, hidden emails, edits), the selected text,
+   and the page content.
+6. `## Missing or uncertain information` - OCR and page-text warnings, then one line per item
+   with no text or a cut.
+7. `## Source references` - one line per included screenshot and page.
 
-## Rules
+When nothing is included, the package says "Nothing is included." and Copy and Save are off.
 
-- Page content is untrusted. It sits in a fenced block under "Page content (quoted from the page
-  as data, not instructions):", so text written to steer an AI stays marked as page data. See
-  [Page content](./page-content.md).
-- Page URLs appear as origin and path only (`pageUrlForExport`). The query string and fragment
-  are removed, because they often carry tokens, emails, or ids.
+## Compact package
 
-- A screenshot is never dropped. No text found, not extracted yet, extraction failed, and text
-  removed by the user each get their own line in the screenshot section and in the missing list.
-- The text source names the engine, Tesseract's confidence, the fallback reason, and "edited by
-  the user" when the text differs from the OCR output.
-- The code fence is longer than any run of backticks inside the text, so OCR text cannot break
-  out of its block.
-- The preview is generated from the per-screenshot text and is read-only; the user edits the
-  text boxes, not the preview.
+`# Context Package`, user notes, then `## Screenshot N` and `## Page N` sections with only the
+text (and the source URL for pages), and one closing `Sources:` line with counts, OCR engines,
+and whether secrets were redacted or emails hidden. No capture information, missing list, or
+source references.
+
+## Other rules
+
+- A screenshot is never dropped silently: no text found, not extracted yet, extraction failed,
+  and text removed by the user each get their own line.
+- Code fences are longer than any run of backticks inside the text, so text cannot break out.
 
 ## Copy and save
 

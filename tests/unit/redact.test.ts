@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { redactSecrets } from '../../src/shared/redact';
+import { hideEmails, redactSecrets } from '../../src/shared/redact';
 
 describe('redactSecrets', () => {
   it('redacts well-known token formats', () => {
@@ -41,5 +41,18 @@ describe('redactSecrets', () => {
       'Password reset link sent. Token: abc. Revenue 1,284.50 EUR on 2026-11-23. ' +
       'Order 77812345 shipped.';
     expect(redactSecrets(plain)).toEqual({ text: plain, count: 0 });
+  });
+});
+
+describe('hideEmails', () => {
+  it('replaces email addresses and counts them', () => {
+    expect(hideEmails('Write to ana.k+test@example.co.uk or ops@shop.example today.')).toEqual({
+      text: 'Write to [email hidden] or [email hidden] today.',
+      count: 2,
+    });
+    expect(hideEmails('No address here, just @mentions and 1@2.')).toEqual({
+      text: 'No address here, just @mentions and 1@2.',
+      count: 0,
+    });
   });
 });
