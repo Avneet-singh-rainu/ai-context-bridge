@@ -33,3 +33,6 @@
   a second page, so the app keeps one CDP page.
 - `tests/unit/chrome-cdp.test.ts` - covered startup-page reuse, creation fallback and target
   filtering.
+- `src/main/browser/chrome-launcher.ts` - deletes a stale `DevToolsActivePort` before launching Chrome
+  so a previous session's dead port cannot break the next launch.
+- `tests/unit/chrome-launcher.test.ts` - covered stale port removal.
