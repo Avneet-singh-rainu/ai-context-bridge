@@ -4,7 +4,7 @@
 # A status that has not moved in 30 days is a bug, not a state.
 
 ticket: issue-11
-title: Show headless Chrome pages with one frame after input stops
+title: Use Electron's native browser view
 status: In Progress
 blocked_reason:
 tier: 3

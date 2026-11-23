@@ -15,10 +15,6 @@ export const IPC_CHANNELS = {
   browserGetState: 'browser:get-state',
   browserCapture: 'browser:capture',
   browserExtract: 'browser:extract',
-  /** Renderer -> main input event, forwarded to the Chrome page through CDP. */
-  browserInput: 'browser:input',
-  /** Main -> renderer event carrying the latest JPEG frame of the Chrome page. */
-  browserFrame: 'browser:frame',
   networkStart: 'network:start',
   networkStop: 'network:stop',
   networkClear: 'network:clear',
@@ -91,47 +87,6 @@ export interface BrowserState {
 
 export type BrowserCommand = 'back' | 'forward' | 'reload' | 'stop';
 
-export interface BrowserInputModifiers {
-  altKey?: boolean;
-  ctrlKey?: boolean;
-  metaKey?: boolean;
-  shiftKey?: boolean;
-}
-
-/** An input event from the renderer, mapped to a CDP command in main. */
-export type BrowserInput =
-  | ({ type: 'mouseMove'; x: number; y: number; buttons?: number } & BrowserInputModifiers)
-  | ({
-      type: 'mouseDown' | 'mouseUp';
-      x: number;
-      y: number;
-      button?: string;
-      clickCount?: number;
-    } & BrowserInputModifiers)
-  | ({
-      type: 'wheel';
-      x: number;
-      y: number;
-      deltaX: number;
-      deltaY: number;
-    } & BrowserInputModifiers)
-  | ({
-      type: 'keyDown' | 'keyUp';
-      key: string;
-      code?: string;
-      text?: string;
-    } & BrowserInputModifiers)
-  | { type: 'text'; text: string };
-
-/** A JPEG frame of the active Chrome page, rendered by the renderer in the browser viewport. */
-export interface BrowserFrame {
-  /** Base64-encoded JPEG bytes from CDP Page.captureScreenshot. */
-  data: string;
-  width: number;
-  height: number;
-  sequence: number;
-}
-
 /** Where the renderer wants the browser view, in CSS pixels of the app window. */
 export interface BrowserBounds {
   x: number;
@@ -171,12 +126,8 @@ export interface BridgeApi {
   browserCapture(): Promise<CaptureResponse>;
   /** Text, headings, tables, and selection of the active page; limited and redacted in main. */
   browserExtract(): Promise<PageExtractResponse>;
-  /** Forwards a renderer input event to the Chrome page; no CDP access reaches the renderer. */
-  browserSendInput(input: BrowserInput): void;
   /** Subscribes to browser state changes; returns a function that unsubscribes. */
   onBrowserState(listener: (state: BrowserState) => void): () => void;
-  /** Subscribes to page frames; returns a function that unsubscribes. */
-  onBrowserFrame(listener: (frame: BrowserFrame) => void): () => void;
   /** Starts recording the active page's API responses. */
   networkStart(): Promise<{ ok: true } | { ok: false; error: string }>;
   networkStop(): Promise<void>;

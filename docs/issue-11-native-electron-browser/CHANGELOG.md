@@ -88,3 +88,19 @@
   branch; the app no longer places a separate Chrome window.
 - `docs/issue-11-chrome-cdp-browser/` - brought HLD, LLD, IPC contracts and known issues back to the
   headless frame design and recorded the pause-based scheduler.
+- The user rejected the Chrome dependency and asked for the native Electron browser. ADR 0005
+  supersedes ADR 0002, ADR 0003, and ADR 0004. The earlier ADRs stay as history.
+- `src/main/browser/browser-view.ts` - restored one `WebContentsView` in the app window. Main places
+  the native view over the renderer's page box and Electron paints the page directly.
+- `src/main/browser/network-capture.ts`, `src/main/browser/page-extract.ts` - restored Electron's
+  debugger for network recording and Electron's isolated world for page text.
+- `src/main/browser/chrome-cdp.ts`, `chrome-input.ts`, `chrome-launcher.ts`, `src/shared/input-throttle.ts`
+  and their tests were removed. No Chrome process, profile, frame stream, or CDP input path remains.
+- `src/shared/ipc-contract.ts`, `src/preload/index.ts`, `src/main/ipc.ts`, `BrowserProvider.tsx`,
+  `BrowserWorkspace.tsx` and `styles.css` - removed `browser:input` and `browser:frame`. The renderer
+  no longer forwards page input or draws JPEG frames.
+- `docs/issue-11-chrome-cdp-browser/` - renamed to `docs/issue-11-native-electron-browser/` and
+  rewritten for the current native Electron design. HLD, LLD, IPC contracts, known issues and test
+  cases now describe the native path.
+- `docs/_systems/browser.md`, `docs/ARCHITECTURE.md`, `docs/_systems/app-shell.md`,
+  `docs/_systems/browser-capture.md` - restored the durable Electron browser descriptions.

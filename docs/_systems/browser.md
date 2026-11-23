@@ -1,61 +1,46 @@
 # Browser
 
-Facts about the built-in browser that stay true after issue-11 closes. Main-process code lives in
+Facts about the built-in browser that stay true after issue-6 closes. Main-process code lives in
 `src/main/browser/`; the UI lives in `src/renderer/src/features/browser/`; the address rules live
-in `src/shared/address.ts`. ADR 0002 supersedes ADR 0001's browser-host choice. ADR 0004 replaces
-ADR 0002's fixed frame timer with one frame after input stops.
+in `src/shared/address.ts`. ADR 0005 supersedes ADR 0002, ADR 0003, and ADR 0004 and restores the
+native page view.
 
 ## How the page is shown
 
-- The page runs in an installed Google Chrome, not in Electron. Chrome starts headless with
-  `--headless=new` and a dedicated profile under the app data folder. The launcher is
-  `chrome-launcher.ts`; it finds Chrome through an environment override or the standard Windows
-  install paths, then reads the debugging endpoint from `DevToolsActivePort`.
-- `chrome-cdp.ts` connects to that endpoint over a WebSocket from Node 22. One page target is
-  created and attached with a flattened session. All page commands and events carry that session
-  id. No CDP library is needed.
-- `browser-view.ts` owns the Chrome process, the CDP client and the page. Chrome starts on the
-  first navigation and the same page is reused after that.
+- One `WebContentsView` holds the web page. Main adds it to the app window's `contentView`, on
+  top of the app page. `BrowserView` is deprecated and `<webview>` is discouraged by Electron.
 - The renderer measures its `.browser-viewport` box and sends the bounds over
-  `browser:set-bounds`. Main scales the box by the app page's zoom and sends
-  `Emulation.setDeviceMetricsOverride` so Chrome renders at that size.
-- `scheduleFrame` asks Chrome for one JPEG screenshot 150 ms after mouse, wheel, key, navigation or
-  resize input stops. Main sends the base64 bytes to the renderer on `browser:frame`. The renderer
-  draws the image in `.browser-viewport`. A page that is not visible gets no new frames. A later
-  input replaces the pending frame, and a stale screenshot is dropped.
-- Input never goes to Electron's web contents. The renderer sends `browser:input` events;
-  `chrome-input.ts` maps them to CDP `Input` commands in main. Coordinates are scaled for app zoom.
-  The renderer caps mouse moves at 33 ms.
+  `browser:set-bounds` (on mount, on resize, and with `visible: false` on unmount). Main scales
+  the bounds by the app page's zoom factor.
+- The view is created on the first navigation and stays hidden until then, so the renderer's
+  start panel shows. It is hidden while Screenshots or Context is open and keeps its page.
 - Main pushes `BrowserState` (URL, title, loading, back and forward, security, notice) to the
-  renderer on `browser:state` after every navigation, load, title change or notice.
+  renderer on `browser:state` after every load, navigation, title change, or notice.
+- Renderer UI cannot draw over the page area: the native view is always on top.
 
 ## Isolation
 
-- The app UI stays an Electron window with `contextIsolation: true`, `sandbox: true`,
-  `nodeIntegration: false` and `webviewTag: false`. The renderer gets frames and structured state
-  only, never the CDP socket or Chrome's profile.
-- Web pages run in a separate Chrome process with their own profile. Page scripts have no access
-  to the app, the preload bridge or Node.
-- Chrome runs with `--disable-blink-features=AutomationControlled`, so pages read
-  `navigator.webdriver` as false. The CDP page removes the `Headless` token from Chrome's own user
-  agent before the first navigation. Both changes stop sites such as DuckDuckGo from flagging the
-  page as a bot. The browser remains real Chrome and the debugging port stays on loopback with no
-  broad origin flag.
-- Downloads are denied through `Browser.setDownloadBehavior`. Popups are closed and their address
-  opened in the same page, keeping the one-page rule.
+- The page view has `contextIsolation`, `sandbox`, no `nodeIntegration`, no `webviewTag`, and
+  **no preload**, so web pages have no `window.bridge` and no Node.
+- Pages use the session partition `persist:browser`: cookies and storage persist across launches
+  and stay apart from the app UI's session.
+- The user agent drops Electron's `Electron/x` and app tokens (`plainChromeUserAgent`), so sites
+  see a plain Chrome user agent.
 
 ## Rules
 
 | Event | What happens |
 |---|---|
 | Address bar text | `parseAddress`: full http(s) URL as typed; a bare host gets https (http for localhost, loopback, and private IPs); anything else becomes a DuckDuckGo search; other schemes are refused |
-| Popup, `target="_blank"`, `window.open` | The new Chrome target is closed and its http(s) address opened in the active page; no second window |
-| Download | Denied in Chrome; no file is saved |
+| Link or redirect to a non-http(s) scheme | Blocked in `will-navigate` and `will-redirect`, with a notice (`file:` links are already blocked by Chromium) |
+| Popup, `target="_blank"`, `window.open` | Loads in the same view; no second window |
+| Download | Cancelled, with a notice naming the file |
+| Permission request (camera, microphone, location, notifications, open another app) | Denied; a notice for the common ones |
 | Failed main-frame load | Notice with the URL and Chromium's error; `ERR_ABORTED` (-3) is ignored |
-| Chrome missing or start failure | Notice with a plain error message; the browser stays disabled until the next navigation retry |
+| Page crash | Notice asking the user to reload |
 
-Main checks every renderer input again: address text (string, at most 4096 characters), bounds
-(finite numbers), and input events (finite bounded coordinates, limited text).
+Main checks every renderer input again: address text (string, at most 4096 characters) and
+bounds (finite numbers).
 
 ## Page identity and capture state
 
@@ -71,16 +56,17 @@ Main checks every renderer input again: address text (string, at most 4096 chara
 
 ## Capture
 
-**Capture screenshot** calls `browser:capture`. Main runs `Page.captureScreenshot` on the Chrome
-page and returns PNG bytes. The renderer turns the bytes into a
-`File` named `page-<host>-<YYYY-MM-DD-HHMMSS>.png`, adds the file to the screenshot list through
-the same import checks, and attaches the source page (URL, title, time). See
+**Capture screenshot** calls `browser:capture`. Main runs `webContents.capturePage()` on the
+visible area. Right after a load, Chromium may have no frame yet ("UnknownVizError"), so main
+asks for a repaint and retries up to three times. The PNG goes back to the renderer, becomes a
+`File` named `page-<host>-<YYYY-MM-DD-HHMMSS>.png`, and joins the screenshot list through the
+same import checks, with its source page (URL, title, time) attached. See
 [Screenshots](./screenshots.md) and [Context package](./context-package.md).
 
 ## Extract page text
 
-**Extract page text** runs the extraction script in an isolated world created with CDP, then
-limits and redacts the result in main. See [Page content](./page-content.md).
+**Extract page text** reads the active page's text, headings, tables, and selected text into
+Context, with limits and secret redaction. See [Page content](./page-content.md).
 
 ## Record network
 
@@ -91,7 +77,8 @@ and redacted in main, for review in Context. See [Browser capture](./browser-cap
 
 - One page at a time; there are no tabs.
 - Capture covers the visible area only, not the full page.
-- Chrome must be installed on the machine; the installer does not bundle it.
-- Headless Chrome can still be rejected by anti-bot checks. See
-  [issue-11 Known_Issues](../issue-11-chrome-cdp-browser/Known_Issues.md).
 - No keyboard shortcuts yet (F5, Alt+Left, Ctrl+L); key presses inside the page go to the page.
+- Google sign-in failed in an earlier native-view attempt and needs a real-account test. ADR 0005
+  accepts that risk and adds no Chrome fallback.
+- See [issue-6 Known_Issues](../issue-6-in-app-browser/Known_Issues.md) for location requests
+  and other gaps.
