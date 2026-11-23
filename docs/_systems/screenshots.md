@@ -36,7 +36,10 @@ named `.jpg` that holds PNG bytes is accepted as PNG.
 
 `Screenshot` in `import-screenshots.ts`: id, the original `File` (kept unchanged for OCR), file
 name, format, MIME type, size in bytes, modified time, decoded width and height (after EXIF
-rotation), and a thumbnail.
+rotation), a thumbnail, and for browser captures a `source` (page URL, title, capture time).
+
+Browser captures enter through `addCapture` in `ScreenshotsProvider`, which runs the same checks
+as a picked or dropped file. See [Browser](./browser.md).
 
 ## Thumbnails
 

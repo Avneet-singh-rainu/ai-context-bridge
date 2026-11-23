@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { DEFAULT_VIEW, NAV_ITEMS, type ViewId } from './components/navigation';
 import { Sidebar } from './components/Sidebar';
 import { StatusBar } from './components/StatusBar';
+import { BrowserProvider } from './features/browser/BrowserProvider';
 import { BrowserWorkspace } from './features/browser/BrowserWorkspace';
 import { ContextWorkspace } from './features/context/ContextWorkspace';
 import { ScreenshotsProvider } from './features/screenshots/ScreenshotsProvider';
@@ -19,13 +20,15 @@ export function App() {
 
   return (
     <ScreenshotsProvider>
-      <div className="app-shell">
-        <Sidebar items={NAV_ITEMS} activeView={activeView} onSelect={setActiveView} />
-        <main className="app-main">
-          <ActiveWorkspace />
-        </main>
-        <StatusBar />
-      </div>
+      <BrowserProvider>
+        <div className="app-shell">
+          <Sidebar items={NAV_ITEMS} activeView={activeView} onSelect={setActiveView} />
+          <main className="app-main">
+            <ActiveWorkspace />
+          </main>
+          <StatusBar />
+        </div>
+      </BrowserProvider>
     </ScreenshotsProvider>
   );
 }

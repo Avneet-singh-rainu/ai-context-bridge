@@ -1,0 +1,9 @@
+ticket: issue-6
+title: "[M4] Build the in-app browser"
+status: In Progress
+blocked_reason:
+tier: 2
+systems: [browser, app-shell, screenshots, context-package]
+parent:
+children: []
+updated: 2026-11-23
