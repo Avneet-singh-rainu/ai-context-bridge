@@ -29,6 +29,7 @@ import {
   useState,
 } from 'react';
 import type { PageSecurity } from '../../../../shared/address';
+import { type LastMouseMove, shouldSendMouseMove } from '../../../../shared/input-throttle';
 import { useNetwork } from '../capture/NetworkProvider';
 import { type CaptureStatus, describeCapture, useBrowser } from './BrowserProvider';
 
@@ -102,6 +103,7 @@ export function BrowserWorkspace() {
   } = useBrowser();
   const viewportRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const lastMoveRef = useRef<LastMouseMove | null>(null);
   const [draft, setDraft] = useState(state.url);
   const [editing, setEditing] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -187,6 +189,9 @@ export function BrowserWorkspace() {
 
   const onPointerMove = (event: ReactMouseEvent<HTMLDivElement>) => {
     const point = pointOf(event.currentTarget, event.clientX, event.clientY);
+    const now = performance.now();
+    if (!shouldSendMouseMove(now, point.x, point.y, lastMoveRef.current)) return;
+    lastMoveRef.current = { at: now, x: point.x, y: point.y };
     sendInput({ type: 'mouseMove', ...point, buttons: event.buttons, ...modifiersOf(event) });
   };
 
