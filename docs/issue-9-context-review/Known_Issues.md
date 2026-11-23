@@ -43,3 +43,30 @@ from the user's review.
 short.
 
 **Blast radius:** larger collections.
+
+## 4. The package has no overall size budget
+
+**Status:** Not fixed - planned, not built
+
+**Found:** 2026-11-23
+
+**What happens:** each page is capped at 50,000 characters (about 12,000 tokens) and up to 10
+pages are allowed, and OCR text from 20 screenshots adds more. Together the package can approach
+about 125,000 tokens, far more than a free AI chat accepts. The preview shows a token estimate but
+nothing stops or trims an oversized package. Network capture (issue-8) will add more data.
+
+**Why it was not fixed here:** the review and export work came first; the budget was raised after
+issue-9. The user chose to record the plan before building it.
+
+**Planned fix:**
+
+- A target picker in Context: Free chat (about 8,000 tokens), Standard (about 32,000), Large
+  (about 128,000).
+- A meter in the toolbar: tokens used against the target, amber at 80% and red when over.
+- Each item shows its own token size, so the heavy items are easy to spot.
+- Fit to budget: switch to compact, then trim the largest items first at block boundaries, mark
+  each "cut to fit", never drop an item silently, and let Restore undo it.
+- Copy and Save warn when the package is over the target.
+- Network responses (issue-8) count against the same budget and start left out.
+
+**Blast radius:** anyone who collects many pages or screenshots and pastes into a free chat.

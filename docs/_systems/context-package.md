@@ -82,3 +82,11 @@ source references.
   the Windows save dialog, starting in Documents with a sanitized suggested name
   (`context-package-YYYY-MM-DD-HHMM.md`), and writes the file only to the path the user picks.
   Packages over 5 MB are refused.
+
+## Limits
+
+- There is no overall size budget yet: the preview shows a token estimate (about 4 characters per
+  token), but nothing stops or trims a package that is too large for the target chat. The planned
+  budget is in [issue-9 Known Issue 4](../issue-9-context-review/Known_Issues.md).
+- Network data and tooltips are reserved sources with no items until they are built
+  ([issue-8](../issue-8-network-capture/Design.md) for network capture).

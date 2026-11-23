@@ -1,8 +1,9 @@
+import { LoaderCircle, ScanText } from 'lucide-react';
 import { needsExtraction } from './ocr-store';
 import { useScreenshots } from './ScreenshotsProvider';
 
 /** Runs OCR on every screenshot that has no text yet. Shown in Screenshots and Context. */
-export function ExtractTextButton({ className = 'secondary-button' }: { className?: string }) {
+export function ExtractTextButton({ className = 'btn btn-secondary' }: { className?: string }) {
   const { screenshots, ocr, importing, extracting, canExtract, extractText } = useScreenshots();
   const pending = screenshots.filter((shot) => needsExtraction(ocr[shot.id])).length;
 
@@ -19,7 +20,12 @@ export function ExtractTextButton({ className = 'secondary-button' }: { classNam
       title={canExtract ? 'Read text on this PC with Windows OCR' : 'Needs the desktop app'}
       onClick={() => void extractText()}
     >
-      {label}
+      {extracting ? (
+        <LoaderCircle size={15} className="spin" aria-hidden="true" />
+      ) : (
+        <ScanText size={15} strokeWidth={1.9} aria-hidden="true" />
+      )}
+      <span className="btn-label">{label}</span>
     </button>
   );
 }

@@ -1,10 +1,11 @@
+import { StickyNote } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import type { Screenshot } from '../screenshots/import-screenshots';
 import { describeOcr } from '../screenshots/ocr-status';
 import type { OcrEntry } from '../screenshots/ocr-store';
 import type { UserNote } from './context-model';
 
-/** The include checkbox shown on every item. */
+/** The include switch shown at the end of every item. */
 export function IncludeToggle({
   included,
   label,
@@ -15,19 +16,24 @@ export function IncludeToggle({
   onChange: (included: boolean) => void;
 }) {
   return (
-    <label className="include-toggle" title={included ? 'In the package' : 'Left out'}>
+    <label
+      className="include-toggle"
+      title={included ? 'In the package. Turn off to leave it out.' : 'Left out of the package'}
+    >
       <input
         type="checkbox"
+        role="switch"
+        aria-checked={included}
+        className="switch"
         checked={included}
         aria-label={`Include ${label}`}
         onChange={(event) => onChange(event.target.checked)}
       />
-      Include
     </label>
   );
 }
 
-/** Include-all checkbox for a group; shows a dash when only some items are included. */
+/** Include-all switch for a group; shows a middle position when only some items are included. */
 export function GroupToggle({
   includedCount,
   total,
@@ -46,14 +52,15 @@ export function GroupToggle({
   }, [some]);
   return (
     <label className="group-toggle">
+      {includedCount} of {total} included
       <input
         ref={ref}
         type="checkbox"
+        className="switch"
         checked={includedCount === total}
         aria-label={`Include all ${label}`}
         onChange={(event) => onChange(event.target.checked)}
       />
-      {includedCount} of {total} included
     </label>
   );
 }
@@ -74,21 +81,26 @@ export function NoteEditor({
   onRemove: () => void;
 }) {
   return (
-    <li className={included ? 'text-editor' : 'text-editor is-excluded'}>
+    <li className={included ? 'text-editor note-editor' : 'text-editor note-editor is-excluded'}>
       <div className="text-editor-head">
-        <IncludeToggle included={included} label={`note ${position}`} onChange={onToggle} />
+        <span className="item-icon" aria-hidden="true">
+          <StickyNote size={17} strokeWidth={1.8} />
+        </span>
         <div className="text-editor-title">
           <strong>Note {position}</strong>
-          <span className="text-editor-status">Your words go into the package as written.</span>
+          <span className="text-editor-status">Goes into the package exactly as you write it</span>
         </div>
-        <button
-          type="button"
-          className="text-button"
-          aria-label={`Remove note ${position}`}
-          onClick={onRemove}
-        >
-          Remove
-        </button>
+        <div className="item-actions">
+          <button
+            type="button"
+            className="btn btn-plain is-destructive"
+            aria-label={`Remove note ${position}`}
+            onClick={onRemove}
+          >
+            Remove
+          </button>
+          <IncludeToggle included={included} label={`note ${position}`} onChange={onToggle} />
+        </div>
       </div>
       <textarea
         aria-label={`Note ${position}`}
@@ -131,7 +143,6 @@ export function ScreenshotTextEditor({
   return (
     <li className={included ? 'text-editor' : 'text-editor is-excluded'}>
       <div className="text-editor-head">
-        <IncludeToggle included={included} label={fileName} onChange={onToggle} />
         <img className="text-editor-thumb" src={thumbnailUrl} alt="" />
         <div className="text-editor-title">
           <strong title={fileName}>
@@ -139,11 +150,14 @@ export function ScreenshotTextEditor({
           </strong>
           <span className="text-editor-status">{describeOcr(entry)}</span>
         </div>
-        {isEdited && (
-          <button type="button" className="text-button" onClick={() => onRestore(id)}>
-            Restore
-          </button>
-        )}
+        <div className="item-actions">
+          {isEdited && (
+            <button type="button" className="btn btn-plain" onClick={() => onRestore(id)}>
+              Restore
+            </button>
+          )}
+          <IncludeToggle included={included} label={fileName} onChange={onToggle} />
+        </div>
       </div>
       {entry?.status === 'done' ? (
         <textarea

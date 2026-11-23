@@ -1,4 +1,5 @@
 import { writeFile } from 'node:fs/promises';
+import { release } from 'node:os';
 import { join } from 'node:path';
 import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import { type AppInfo, IPC_CHANNELS, type SaveContextResponse } from '../shared/ipc-contract';
@@ -12,6 +13,7 @@ import {
 } from './browser/browser-view';
 import { parseSaveRequest, sanitizeFileName } from './ipc-requests';
 import { recognizeImage } from './ocr/ocr-service';
+import { supportsMica } from './window-options';
 
 function getAppInfo(): AppInfo {
   return {
@@ -19,6 +21,7 @@ function getAppInfo(): AppInfo {
     version: app.getVersion(),
     electron: process.versions.electron,
     chrome: process.versions.chrome,
+    mica: supportsMica(process.platform, release()),
   };
 }
 

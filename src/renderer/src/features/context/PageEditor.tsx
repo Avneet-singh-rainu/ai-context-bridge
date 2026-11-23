@@ -1,3 +1,4 @@
+import { Globe, TriangleExclamationPoint } from 'lucide-react';
 import { pageUrlForExport } from '../../../../shared/address';
 import { IncludeToggle } from './ContextItemEditors';
 import type { PageEntry } from './page-store';
@@ -45,45 +46,54 @@ export function PageEditor({
   return (
     <li className={included ? 'text-editor page-editor' : 'text-editor page-editor is-excluded'}>
       <div className="text-editor-head">
-        <IncludeToggle
-          included={included}
-          label={`page ${position}, ${extract.title || url}`}
-          onChange={onToggle}
-        />
-        <span className="page-badge">Page {position}</span>
+        <span className="item-icon" aria-hidden="true">
+          <Globe size={17} strokeWidth={1.8} />
+        </span>
         <div className="text-editor-title">
-          <strong title={extract.title}>{extract.title || url}</strong>
+          <strong title={extract.title}>
+            {position}. {extract.title || url}
+          </strong>
           <span className="text-editor-status" title={extract.url}>
-            {url} - read at {timeOf(extract.extractedAt)}
+            {url} · read at {timeOf(extract.extractedAt)}
           </span>
           <span className="text-editor-status">
-            {facts.join(' - ')}
-            {isEdited ? ' - edited' : ''}
+            {facts.join(' · ')}
+            {isEdited ? ' · edited' : ''}
           </span>
         </div>
-        {isEdited && (
-          <button type="button" className="text-button" onClick={() => onRestore(id)}>
-            Restore
+        <div className="item-actions">
+          {isEdited && (
+            <button type="button" className="btn btn-plain" onClick={() => onRestore(id)}>
+              Restore
+            </button>
+          )}
+          <button
+            type="button"
+            className="btn btn-plain is-destructive page-remove"
+            aria-label={`Remove page ${position}, ${extract.title || url}`}
+            onClick={() => onRemove(id)}
+          >
+            Remove
           </button>
-        )}
-        <button
-          type="button"
-          className="text-button page-remove"
-          aria-label={`Remove page ${position}, ${extract.title || url}`}
-          onClick={() => onRemove(id)}
-        >
-          Remove
-        </button>
+          <IncludeToggle
+            included={included}
+            label={`page ${position}, ${extract.title || url}`}
+            onChange={onToggle}
+          />
+        </div>
       </div>
       {stats.truncated && (
-        <p className="page-warning">
-          The page was longer than the limits, so the end of it, extra tables, rows, or long cells
-          were left out. Capture a screenshot for anything missing.
-        </p>
+        <div className="banner page-warning" data-tone="warning">
+          <TriangleExclamationPoint size={15} aria-hidden="true" />
+          <div className="banner-body">
+            The page was longer than the limits, so its end, extra tables, rows, or long cells were
+            left out. Capture a screenshot for anything missing.
+          </div>
+        </div>
       )}
       {extract.selection !== '' && (
         <label className="page-field">
-          <span>Selected text</span>
+          Selected text
           <textarea
             value={page.selection}
             rows={Math.min(6, Math.max(2, page.selection.split('\n').length + 1))}
@@ -93,7 +103,7 @@ export function PageEditor({
         </label>
       )}
       <label className="page-field">
-        <span>Page content (Markdown)</span>
+        Page content (Markdown)
         <textarea
           value={page.markdown}
           rows={rows}

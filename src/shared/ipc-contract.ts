@@ -23,6 +23,8 @@ export interface AppInfo {
   version: string;
   electron: string;
   chrome: string;
+  /** True when the window uses the Mica material, so the sidebar can be translucent. */
+  mica: boolean;
 }
 
 export type OcrEngineId = 'windows' | 'tesseract';

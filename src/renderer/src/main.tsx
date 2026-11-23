@@ -12,6 +12,18 @@ window.addEventListener('dragover', (event) => {
 });
 window.addEventListener('drop', (event) => event.preventDefault());
 
+// In Electron, Windows draws its caption buttons over the top right corner of the toolbar.
+if (window.bridge) {
+  document.documentElement.classList.add('has-caption-buttons');
+  // With Mica, the sidebar turns translucent; elsewhere it keeps an opaque colour.
+  void window.bridge
+    .getAppInfo()
+    .then((info) => {
+      if (info.mica) document.documentElement.dataset.material = 'mica';
+    })
+    .catch(() => undefined);
+}
+
 const rootElement = document.getElementById('root');
 if (!rootElement) throw new Error('Missing #root element in index.html');
 
