@@ -24,6 +24,10 @@ electron-vite builds each part into `out/main/`, `out/preload/`, and `out/render
   `IPC_Contracts.md` entry.
 - The app window denies new windows and blocks navigation away from its own page.
 - `src/renderer/index.html` sets a Content Security Policy that allows scripts from the app only.
+  Images may come from the app or `data:` URLs; `fetch` and other connections fall back to
+  `default-src 'self'`.
+- `src/renderer/src/main.tsx` refuses file drops outside a drop zone, so a dropped file never
+  replaces the app page. A drop zone calls `preventDefault` on `dragover` and `drop` itself.
 - The renderer must still render without `window.bridge`, so the UI can be previewed in a normal
   browser during `npm run dev`.
 - `package.json` has no `"type": "module"`, so main and preload build as CommonJS. Sandboxed

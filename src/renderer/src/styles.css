@@ -111,3 +111,208 @@ body {
   color: var(--muted);
   font-size: 12px;
 }
+
+/* Buttons */
+
+.primary-button,
+.icon-button,
+.text-button {
+  border-radius: 6px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.primary-button {
+  padding: 7px 14px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--panel);
+  font-weight: 600;
+}
+
+.icon-button,
+.text-button {
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: inherit;
+}
+
+.icon-button:hover:not(:disabled),
+.text-button:hover:not(:disabled) {
+  background: var(--bg);
+}
+
+.text-button {
+  margin-left: auto;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Screenshots workspace */
+
+.screenshots-workspace {
+  position: relative;
+  min-height: 100%;
+}
+
+.screenshots-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.screenshots-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.screenshots-count {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.import-progress,
+.import-report {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+}
+
+.import-report.has-problems {
+  border-left: 3px solid #ba7517;
+}
+
+.workspace .import-report p {
+  margin: 0;
+  color: var(--text);
+}
+
+.import-report ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  color: var(--muted);
+}
+
+.drop-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 260px;
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.drop-zone strong {
+  color: var(--text);
+  font-size: 16px;
+}
+
+.drop-zone:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.drop-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed var(--accent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--selected) 85%, transparent);
+  color: var(--accent);
+  font-size: 18px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.shot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.shot-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.shot-thumb {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 4 / 3;
+  border-radius: 4px;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.shot-thumb img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.shot-index {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  min-width: 22px;
+  padding: 1px 6px;
+  border-radius: 11px;
+  background: var(--accent);
+  color: var(--panel);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.workspace .shot-name {
+  margin: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace .shot-meta {
+  margin: 0;
+  font-size: 12px;
+}
+
+.shot-actions {
+  display: flex;
+  gap: 6px;
+}

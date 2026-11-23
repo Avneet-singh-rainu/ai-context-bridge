@@ -4,6 +4,7 @@ import { Sidebar } from './components/Sidebar';
 import { StatusBar } from './components/StatusBar';
 import { BrowserWorkspace } from './features/browser/BrowserWorkspace';
 import { ContextWorkspace } from './features/context/ContextWorkspace';
+import { ScreenshotsProvider } from './features/screenshots/ScreenshotsProvider';
 import { ScreenshotsWorkspace } from './features/screenshots/ScreenshotsWorkspace';
 
 const WORKSPACES: Record<ViewId, () => React.JSX.Element> = {
@@ -17,12 +18,14 @@ export function App() {
   const ActiveWorkspace = WORKSPACES[activeView];
 
   return (
-    <div className="app-shell">
-      <Sidebar items={NAV_ITEMS} activeView={activeView} onSelect={setActiveView} />
-      <main className="app-main">
-        <ActiveWorkspace />
-      </main>
-      <StatusBar />
-    </div>
+    <ScreenshotsProvider>
+      <div className="app-shell">
+        <Sidebar items={NAV_ITEMS} activeView={activeView} onSelect={setActiveView} />
+        <main className="app-main">
+          <ActiveWorkspace />
+        </main>
+        <StatusBar />
+      </div>
+    </ScreenshotsProvider>
   );
 }
