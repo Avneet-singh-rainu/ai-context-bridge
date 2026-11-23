@@ -1,4 +1,5 @@
 import { pageUrlForExport } from '../../../../shared/address';
+import { IncludeToggle } from './ContextItemEditors';
 import type { PageEntry } from './page-store';
 
 const plural = (count: number, word: string) => `${count} ${word}${count === 1 ? '' : 's'}`;
@@ -11,13 +12,23 @@ function timeOf(iso: string): string {
 interface PageEditorProps {
   page: PageEntry;
   position: number;
+  included: boolean;
+  onToggle: (included: boolean) => void;
   onEdit: (id: string, field: 'markdown' | 'selection', text: string) => void;
   onRestore: (id: string) => void;
   onRemove: (id: string) => void;
 }
 
 /** Review box for one extracted page: what was read, what was cut or redacted, and the text. */
-export function PageEditor({ page, position, onEdit, onRestore, onRemove }: PageEditorProps) {
+export function PageEditor({
+  page,
+  position,
+  included,
+  onToggle,
+  onEdit,
+  onRestore,
+  onRemove,
+}: PageEditorProps) {
   const { id, extract } = page;
   const { stats } = extract;
   const isEdited = page.markdown !== extract.markdown || page.selection !== extract.selection;
@@ -32,8 +43,13 @@ export function PageEditor({ page, position, onEdit, onRestore, onRemove }: Page
   const rows = Math.min(16, Math.max(4, page.markdown.split('\n').length + 1));
 
   return (
-    <li className="text-editor page-editor">
+    <li className={included ? 'text-editor page-editor' : 'text-editor page-editor is-excluded'}>
       <div className="text-editor-head">
+        <IncludeToggle
+          included={included}
+          label={`page ${position}, ${extract.title || url}`}
+          onChange={onToggle}
+        />
         <span className="page-badge">Page {position}</span>
         <div className="text-editor-title">
           <strong title={extract.title}>{extract.title || url}</strong>

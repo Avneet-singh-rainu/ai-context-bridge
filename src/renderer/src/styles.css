@@ -701,3 +701,158 @@ button:focus-visible {
   color: var(--text);
   font-size: 12px;
 }
+
+/* Unified context review */
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.mode-switch {
+  display: inline-flex;
+  margin: 0;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.mode-switch label {
+  padding: 5px 12px;
+  border-radius: 6px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.mode-switch label.is-active {
+  background: var(--selected);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.mode-switch input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mode-switch label:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.privacy-review {
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  background: var(--panel);
+}
+
+.privacy-review h2 {
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+
+.privacy-review ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.privacy-review li[data-kind="warn"] {
+  color: #854f0b;
+}
+
+.privacy-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.context-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.context-group-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.context-group-head h2 {
+  margin: 0;
+}
+
+.context-group-head .text-button {
+  margin-left: auto;
+}
+
+.group-toggle,
+.include-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.workspace .context-group-hint {
+  margin: 0;
+  font-size: 13px;
+}
+
+.text-editor.is-excluded {
+  border-style: dashed;
+  opacity: 0.55;
+}
+
+.text-editor .text-editor-head .text-button {
+  margin-left: auto;
+}
+
+.text-editor .text-editor-head .text-button + .text-button {
+  margin-left: 0;
+}
+
+.package-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: sticky;
+  top: 0;
+}
+
+.package-size {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.workspace .package-stale {
+  max-width: none;
+  margin: 0;
+  padding: 6px 10px;
+  border-left: 3px solid #ba7517;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 12px;
+}
+
+.markdown-editor {
+  width: 100%;
+  min-height: 420px;
+  color: var(--text);
+  resize: vertical;
+}

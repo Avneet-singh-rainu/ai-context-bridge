@@ -44,3 +44,19 @@ export function redactSecrets(input: string): { text: string; count: number } {
   });
   return { text, count };
 }
+
+const EMAIL = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g;
+
+/** Email addresses are personal data, not secrets: the user decides whether to hide them. */
+export function hideEmails(input: string): { text: string; count: number } {
+  let count = 0;
+  const text = input.replace(EMAIL, () => {
+    count += 1;
+    return '[email hidden]';
+  });
+  return { text, count };
+}
+
+export function countEmails(input: string): number {
+  return input.match(EMAIL)?.length ?? 0;
+}

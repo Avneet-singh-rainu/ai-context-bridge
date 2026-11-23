@@ -1,89 +1,41 @@
 import { useMemo, useState } from 'react';
-import { buildContextMarkdown, suggestedFileName } from '../export/context-markdown';
+import { hideEmails, redactSecrets } from '../../../../shared/redact';
+import { renderContextPackage, suggestedFileName } from '../export/context-markdown';
 import { ExtractTextButton } from '../screenshots/ExtractTextButton';
-import type { Screenshot } from '../screenshots/import-screenshots';
-import { describeOcr } from '../screenshots/ocr-status';
-import { needsExtraction, type OcrEntry } from '../screenshots/ocr-store';
+import { needsExtraction } from '../screenshots/ocr-store';
 import { useScreenshots } from '../screenshots/ScreenshotsProvider';
+import { ContextGroupBlock } from './ContextGroupBlock';
+import { useContextReview } from './ContextReviewProvider';
+import { collectContextItems, groupItems } from './context-model';
+import { PackagePreview } from './PackagePreview';
 import { usePageContent } from './PageContentProvider';
-import { PageEditor } from './PageEditor';
+import { PrivacyReview } from './PrivacyReview';
+import type { ExportMode } from './review-store';
 
 interface Notice {
   kind: 'ok' | 'error';
   text: string;
 }
 
-interface TextEditorProps {
-  screenshot: Screenshot;
-  entry: OcrEntry | undefined;
-  position: number;
-  onEdit: (id: string, text: string) => void;
-  onRestore: (id: string) => void;
-}
-
-function placeholderFor(entry: OcrEntry | undefined): string {
-  if (!entry) return 'No text yet. Use Extract text.';
-  if (entry.status === 'running') return 'Reading text...';
-  return entry.error ?? 'Text extraction failed.';
-}
-
-function TextEditor({ screenshot, entry, position, onEdit, onRestore }: TextEditorProps) {
-  const { id, fileName, thumbnailUrl } = screenshot;
-  const isEdited = entry?.status === 'done' && entry.text !== entry.extractedText;
-  const lineCount = entry?.text.split('\n').length ?? 0;
-
-  return (
-    <li className="text-editor">
-      <div className="text-editor-head">
-        <img className="text-editor-thumb" src={thumbnailUrl} alt="" />
-        <div className="text-editor-title">
-          <strong title={fileName}>
-            {position}. {fileName}
-          </strong>
-          <span className="text-editor-status">{describeOcr(entry)}</span>
-        </div>
-        {isEdited && (
-          <button type="button" className="text-button" onClick={() => onRestore(id)}>
-            Restore
-          </button>
-        )}
-      </div>
-      {entry?.status === 'done' ? (
-        <textarea
-          aria-label={`Text from screenshot ${position}, ${fileName}`}
-          value={entry.text}
-          placeholder="No text was found. Type text here to add it to the package."
-          rows={Math.min(14, Math.max(3, lineCount + 1))}
-          spellCheck={false}
-          onChange={(event) => onEdit(id, event.target.value)}
-        />
-      ) : (
-        <p
-          className={
-            entry?.status === 'failed' ? 'text-editor-empty is-error' : 'text-editor-empty'
-          }
-        >
-          {placeholderFor(entry)}
-        </p>
-      )}
-    </li>
-  );
-}
+/** The "- Created:" line changes every minute; ignore it when checking for real changes. */
+const withoutTimestamp = (text: string) => text.replace(/^- Created: .*$/m, '');
 
 export function ContextWorkspace() {
-  const { screenshots, ocr, editText, restoreText } = useScreenshots();
-  const { pages, editPage, restorePage, removePage } = usePageContent();
-  const isEmpty = screenshots.length === 0 && pages.length === 0;
+  const { screenshots, ocr } = useScreenshots();
+  const { pages } = usePageContent();
+  const { review, setMode, setHideEmails, startEdit, editPackage, discardEdit } =
+    useContextReview();
   const [notice, setNotice] = useState<Notice | null>(null);
   const canSave = window.bridge !== undefined;
   const pending = screenshots.filter((shot) => needsExtraction(ocr[shot.id])).length;
 
-  const markdown = useMemo(
+  const items = useMemo(
     () =>
-      buildContextMarkdown(
-        screenshots.map((shot) => ({ ...shot, ocr: ocr[shot.id] })),
-        new Date(),
-        pages.map((page) => ({
+      collectContextItems({
+        notes: review.notes,
+        screenshots: screenshots.map((shot) => ({ ...shot, ocr: ocr[shot.id] })),
+        pages: pages.map((page) => ({
+          id: page.id,
           url: page.extract.url,
           title: page.extract.title,
           extractedAt: page.extract.extractedAt,
@@ -93,16 +45,48 @@ export function ContextWorkspace() {
           originalMarkdown: page.extract.markdown,
           stats: page.extract.stats,
         })),
-      ),
-    [screenshots, ocr, pages],
+        excluded: review.excluded,
+      }),
+    [review.notes, review.excluded, screenshots, ocr, pages],
   );
 
+  const rendered = useMemo(
+    () =>
+      renderContextPackage(items, {
+        createdAt: new Date(),
+        mode: review.mode,
+        hideEmails: review.hideEmails,
+      }),
+    [items, review.mode, review.hideEmails],
+  );
+
+  const groups = groupItems(items);
+  const edit = review.edit;
+  const isStale =
+    edit !== null && withoutTimestamp(edit.basedOn) !== withoutTimestamp(rendered.markdown);
+  const nothingIncluded = rendered.privacy.included === 0;
+  const hasSources = items.some((item) => item.source !== 'note');
+
+  /** The text that leaves the app. Edited text is cleaned again: the user may type anything. */
+  const finalText = (): { text: string; redacted: number } => {
+    if (!edit) return { text: rendered.markdown, redacted: 0 };
+    const secrets = redactSecrets(edit.text);
+    const text = review.hideEmails ? hideEmails(secrets.text).text : secrets.text;
+    return { text, redacted: secrets.count };
+  };
+
+  const redactedNote = (count: number) =>
+    count > 0
+      ? ` ${count} secret pattern${count === 1 ? '' : 's'} in your edits ${count === 1 ? 'was' : 'were'} redacted.`
+      : '';
+
   const copy = async () => {
+    const { text, redacted } = finalText();
     try {
-      await navigator.clipboard.writeText(markdown);
+      await navigator.clipboard.writeText(text);
       setNotice({
         kind: 'ok',
-        text: `Copied the context package (${markdown.length} characters).`,
+        text: `Copied the context package (${text.length} characters).${redactedNote(redacted)}`,
       });
     } catch {
       setNotice({ kind: 'error', text: 'Copy failed. Click inside the window and try again.' });
@@ -110,12 +94,16 @@ export function ContextWorkspace() {
   };
 
   const save = async () => {
+    const { text, redacted } = finalText();
     const response = await window.bridge?.saveContextPackage({
-      markdown,
+      markdown: text,
       suggestedName: suggestedFileName(new Date()),
     });
-    if (response?.saved) setNotice({ kind: 'ok', text: `Saved to ${response.filePath}` });
-    else if (response?.error) setNotice({ kind: 'error', text: response.error });
+    if (response?.saved) {
+      setNotice({ kind: 'ok', text: `Saved to ${response.filePath}.${redactedNote(redacted)}` });
+    } else if (response?.error) {
+      setNotice({ kind: 'error', text: response.error });
+    }
   };
 
   return (
@@ -124,16 +112,31 @@ export function ContextWorkspace() {
         <div>
           <h1>Context</h1>
           <p>
-            Check and edit the extracted text, then copy or save one Markdown package. Everything
-            stays on this PC.
+            Review everything collected, leave out what is not needed, then copy or save one
+            Markdown package. Everything stays on this PC.
           </p>
         </div>
         <div className="screenshots-actions">
+          <fieldset className="mode-switch">
+            <legend className="visually-hidden">Package style</legend>
+            {(['detailed', 'compact'] as ExportMode[]).map((mode) => (
+              <label key={mode} className={review.mode === mode ? 'is-active' : undefined}>
+                <input
+                  type="radio"
+                  name="package-mode"
+                  value={mode}
+                  checked={review.mode === mode}
+                  onChange={() => setMode(mode)}
+                />
+                {mode === 'detailed' ? 'Detailed' : 'Compact'}
+              </label>
+            ))}
+          </fieldset>
           <button
             type="button"
             className="secondary-button"
             onClick={() => void save()}
-            disabled={!canSave || isEmpty}
+            disabled={!canSave || nothingIncluded}
             title={canSave ? undefined : 'Needs the desktop app'}
           >
             Save as Markdown
@@ -142,7 +145,7 @@ export function ContextWorkspace() {
             type="button"
             className="primary-button"
             onClick={() => void copy()}
-            disabled={isEmpty}
+            disabled={nothingIncluded}
           >
             Copy to clipboard
           </button>
@@ -157,67 +160,47 @@ export function ContextWorkspace() {
         )}
       </div>
 
-      {isEmpty ? (
-        <p className="context-empty">
-          Nothing collected yet. Add screenshots in the Screenshots view, or open a page in Browser
-          and use Extract page text.
-        </p>
-      ) : (
-        <>
-          {pending > 0 && (
-            <div className="context-pending">
-              <span>
-                {pending === 1
-                  ? '1 screenshot has no text yet.'
-                  : `${pending} screenshots have no text yet.`}
-              </span>
-              <ExtractTextButton />
-            </div>
-          )}
-          <div className="context-columns">
-            <div className="context-sources">
-              {screenshots.length > 0 && (
-                <>
-                  <h2>Screenshot text</h2>
-                  <ol className="text-editor-list">
-                    {screenshots.map((screenshot, index) => (
-                      <TextEditor
-                        key={screenshot.id}
-                        screenshot={screenshot}
-                        entry={ocr[screenshot.id]}
-                        position={index + 1}
-                        onEdit={editText}
-                        onRestore={restoreText}
-                      />
-                    ))}
-                  </ol>
-                </>
-              )}
-              {pages.length > 0 && (
-                <>
-                  <h2>Browser pages</h2>
-                  <ol className="text-editor-list">
-                    {pages.map((page, index) => (
-                      <PageEditor
-                        key={page.id}
-                        page={page}
-                        position={index + 1}
-                        onEdit={editPage}
-                        onRestore={restorePage}
-                        onRemove={removePage}
-                      />
-                    ))}
-                  </ol>
-                </>
-              )}
-            </div>
-            <div>
-              <h2>Markdown package</h2>
-              <pre className="markdown-preview">{markdown}</pre>
-            </div>
-          </div>
-        </>
+      {pending > 0 && (
+        <div className="context-pending">
+          <span>
+            {pending === 1
+              ? '1 screenshot has no text yet.'
+              : `${pending} screenshots have no text yet.`}
+          </span>
+          <ExtractTextButton />
+        </div>
       )}
+
+      <PrivacyReview
+        privacy={rendered.privacy}
+        isEdited={edit !== null}
+        onHideEmails={setHideEmails}
+      />
+
+      <div className="context-columns">
+        <div className="context-sources">
+          {!groups.some((group) => group.source === 'note') && (
+            <ContextGroupBlock group={{ source: 'note', label: 'Your notes', items: [] }} />
+          )}
+          {groups.map((group) => (
+            <ContextGroupBlock key={group.source} group={group} />
+          ))}
+          {!hasSources && (
+            <p className="context-empty">
+              No sources yet. Add screenshots in the Screenshots view, or open a page in Browser and
+              use Extract page text.
+            </p>
+          )}
+        </div>
+        <PackagePreview
+          generated={rendered.markdown}
+          edit={edit}
+          isStale={isStale}
+          onStartEdit={() => startEdit(rendered.markdown)}
+          onEdit={editPackage}
+          onDiscard={discardEdit}
+        />
+      </div>
     </section>
   );
 }
