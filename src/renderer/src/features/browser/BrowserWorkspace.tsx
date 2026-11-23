@@ -17,7 +17,17 @@ import {
   TriangleExclamationPoint,
   X,
 } from 'lucide-react';
-import { type FormEvent, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  type FormEvent,
+  type ClipboardEvent as ReactClipboardEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
+  type WheelEvent as ReactWheelEvent,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import type { PageSecurity } from '../../../../shared/address';
 import { useNetwork } from '../capture/NetworkProvider';
 import { type CaptureStatus, describeCapture, useBrowser } from './BrowserProvider';
@@ -38,7 +48,7 @@ function hostOf(url: string): string {
   }
 }
 
-/** Keeps the native browser view exactly over the viewport box while this workspace is shown. */
+/** Keeps the CDP page viewport sized to the browser box while this workspace is shown. */
 function useBrowserViewBounds(viewport: React.RefObject<HTMLDivElement | null>) {
   useLayoutEffect(() => {
     const element = viewport.current;
@@ -79,8 +89,17 @@ function CaptureIcon({ capture }: { capture: CaptureStatus }) {
 }
 
 export function BrowserWorkspace() {
-  const { available, state, capture, navigate, command, captureScreenshot, extractPage } =
-    useBrowser();
+  const {
+    available,
+    state,
+    frame,
+    capture,
+    navigate,
+    command,
+    sendInput,
+    captureScreenshot,
+    extractPage,
+  } = useBrowser();
   const viewportRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [draft, setDraft] = useState(state.url);
@@ -144,6 +163,86 @@ export function BrowserWorkspace() {
   const networkNotice = network.notice && networkNoticeKey !== closedNotice ? network.notice : null;
   const endpoints = network.entries.length;
   const endpointWord = endpoints === 1 ? 'endpoint' : 'endpoints';
+
+  /** Maps a renderer event to page coordinates, scaling for app zoom. */
+  const pointOf = (element: HTMLElement, clientX: number, clientY: number) => {
+    const box = element.getBoundingClientRect();
+    const scaleX = frame && box.width > 0 ? frame.width / box.width : 1;
+    const scaleY = frame && box.height > 0 ? frame.height / box.height : 1;
+    return {
+      x: (clientX - box.left) * scaleX,
+      y: (clientY - box.top) * scaleY,
+    };
+  };
+
+  const modifiersOf = (event: ReactMouseEvent | ReactWheelEvent | ReactKeyboardEvent) => ({
+    altKey: event.altKey,
+    ctrlKey: event.ctrlKey,
+    metaKey: event.metaKey,
+    shiftKey: event.shiftKey,
+  });
+
+  const pointerName = (button: number): 'left' | 'middle' | 'right' =>
+    button === 2 ? 'right' : button === 1 ? 'middle' : 'left';
+
+  const onPointerMove = (event: ReactMouseEvent<HTMLDivElement>) => {
+    const point = pointOf(event.currentTarget, event.clientX, event.clientY);
+    sendInput({ type: 'mouseMove', ...point, buttons: event.buttons, ...modifiersOf(event) });
+  };
+
+  const onPointerDown = (event: ReactMouseEvent<HTMLDivElement>) => {
+    event.currentTarget.focus();
+    const point = pointOf(event.currentTarget, event.clientX, event.clientY);
+    sendInput({
+      type: 'mouseDown',
+      ...point,
+      button: pointerName(event.button),
+      clickCount: event.detail,
+      ...modifiersOf(event),
+    });
+  };
+
+  const onPointerUp = (event: ReactMouseEvent<HTMLDivElement>) => {
+    const point = pointOf(event.currentTarget, event.clientX, event.clientY);
+    sendInput({
+      type: 'mouseUp',
+      ...point,
+      button: pointerName(event.button),
+      clickCount: event.detail,
+      ...modifiersOf(event),
+    });
+  };
+
+  const onWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
+    const point = pointOf(event.currentTarget, event.clientX, event.clientY);
+    sendInput({
+      type: 'wheel',
+      ...point,
+      deltaX: event.deltaX,
+      deltaY: event.deltaY,
+      ...modifiersOf(event),
+    });
+  };
+
+  const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    const printable = event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey;
+    sendInput({
+      type: 'keyDown',
+      key: event.key,
+      code: event.code,
+      text: printable ? event.key : undefined,
+      ...modifiersOf(event),
+    });
+  };
+
+  const onKeyUp = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    sendInput({ type: 'keyUp', key: event.key, code: event.code, ...modifiersOf(event) });
+  };
+
+  const onPaste = (event: ReactClipboardEvent<HTMLDivElement>) => {
+    const text = event.clipboardData.getData('text');
+    if (text) sendInput({ type: 'text', text });
+  };
 
   return (
     <section className="view browser-workspace" aria-label="Browser">
@@ -342,7 +441,28 @@ export function BrowserWorkspace() {
         </div>
       )}
 
-      <div ref={viewportRef} className="browser-viewport">
+      <div
+        ref={viewportRef}
+        className="browser-viewport"
+        role="application"
+        aria-label="Browser page"
+        tabIndex={state.hasPage ? 0 : -1}
+        onMouseMove={onPointerMove}
+        onMouseDown={onPointerDown}
+        onMouseUp={onPointerUp}
+        onWheel={onWheel}
+        onKeyDown={onKeyDown}
+        onKeyUp={onKeyUp}
+        onPaste={onPaste}
+      >
+        {state.hasPage && frame && (
+          <img
+            className="browser-frame"
+            src={`data:image/jpeg;base64,${frame.data}`}
+            alt={state.title || 'Browser page'}
+            draggable={false}
+          />
+        )}
         {!state.hasPage && (
           <div className="browser-start">
             <span className="icon-tile">

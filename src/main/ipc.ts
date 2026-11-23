@@ -9,6 +9,7 @@ import {
   getState,
   navigate,
   runCommand,
+  input as sendBrowserInput,
   setBounds,
 } from './browser/browser-view';
 import {
@@ -75,6 +76,9 @@ export function registerIpcHandlers(): void {
   ipcMain.handle(IPC_CHANNELS.browserCapture, () => capture());
   ipcMain.handle(IPC_CHANNELS.browserExtract, () => extractPage());
   ipcMain.on(IPC_CHANNELS.browserSetBounds, (_event, bounds: unknown) => setBounds(bounds));
+  ipcMain.on(IPC_CHANNELS.browserInput, (_event, input: unknown) => {
+    void sendBrowserInput(input);
+  });
   ipcMain.handle(IPC_CHANNELS.networkStart, () => startRecording());
   ipcMain.handle(IPC_CHANNELS.networkStop, () => stopRecording());
   ipcMain.handle(IPC_CHANNELS.networkClear, () => clearNetwork());

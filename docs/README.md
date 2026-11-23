@@ -15,3 +15,4 @@ ticket.yaml.
 | [issue-7](./issue-7-page-content/) | [M5] Extract active-page DOM content | In Progress | 2 | 2026-11-23 |
 | [issue-8](./issue-8-network-capture/) | [M6] Capture network requests and permitted response bodies | In Progress | 2 | 2026-11-23 |
 | [issue-9](./issue-9-context-review/) | [M7] Unify context review and export | In Progress | 2 | 2026-11-23 |
+| [issue-11](./issue-11-chrome-cdp-browser/) | Replace the Electron page engine with headless Chrome over CDP | In Progress | 3 | 2026-11-23 |
