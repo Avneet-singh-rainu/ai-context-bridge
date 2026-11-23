@@ -1,4 +1,5 @@
 import { type ChangeEvent, type DragEvent, useRef, useState } from 'react';
+import { ExtractTextButton } from './ExtractTextButton';
 import { ACCEPTED_FILE_TYPES, SCREENSHOT_LIMITS } from './image-validation';
 import type { ImportResult } from './import-screenshots';
 import { ScreenshotCard } from './ScreenshotCard';
@@ -32,7 +33,7 @@ function ImportReport({ result }: { result: ImportResult }) {
 }
 
 export function ScreenshotsWorkspace() {
-  const { screenshots, importing, lastImport, addFiles, remove, move } = useScreenshots();
+  const { screenshots, ocr, importing, lastImport, addFiles, remove, move } = useScreenshots();
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const isFull = screenshots.length >= SCREENSHOT_LIMITS.maxFiles;
@@ -85,6 +86,7 @@ export function ScreenshotsWorkspace() {
           <span className="screenshots-count">
             {screenshots.length} of {SCREENSHOT_LIMITS.maxFiles}
           </span>
+          <ExtractTextButton />
           <button
             type="button"
             className="primary-button"
@@ -123,6 +125,7 @@ export function ScreenshotsWorkspace() {
             <ScreenshotCard
               key={screenshot.id}
               screenshot={screenshot}
+              ocr={ocr[screenshot.id]}
               index={index}
               total={screenshots.length}
               onMove={move}

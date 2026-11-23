@@ -4,6 +4,9 @@
 
 - Windows 10 or 11
 - Node.js 22.12 or newer, with npm (electron-vite and Vite need `^20.19` or `>=22.12`)
+- For Windows OCR: Windows PowerShell 5.1 (`powershell.exe`, part of Windows) and at least one
+  Windows OCR language, such as English. Without them the app falls back to Tesseract. See
+  [OCR](./_systems/ocr.md).
 
 ## First setup
 

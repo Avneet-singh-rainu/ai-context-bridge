@@ -1,6 +1,17 @@
 // Pure checks for screenshot import. No DOM types here, so Vitest can run these in Node.
 
-export type ImageFormat = 'png' | 'jpeg' | 'webp';
+import {
+  ascii,
+  type ImageFormat,
+  MAX_SCREENSHOT_BYTES,
+  startsWith,
+} from '../../../../shared/image-format';
+
+export {
+  detectImageFormat,
+  type ImageFormat,
+  MIME_TYPES,
+} from '../../../../shared/image-format';
 
 export interface ImageSize {
   width: number;
@@ -16,31 +27,14 @@ export interface ImportCandidate {
 
 export const SCREENSHOT_LIMITS = {
   maxFiles: 20,
-  maxFileBytes: 20 * 1024 * 1024,
+  maxFileBytes: MAX_SCREENSHOT_BYTES,
   maxPixels: 50_000_000,
   /** Bytes read from the start of a file to find its format and size. */
   headerBytes: 1024 * 1024,
 } as const;
 
-export const MIME_TYPES: Record<ImageFormat, string> = {
-  png: 'image/png',
-  jpeg: 'image/jpeg',
-  webp: 'image/webp',
-};
-
 /** Value for the file input's `accept` attribute. */
 export const ACCEPTED_FILE_TYPES = '.png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp';
-
-const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
-
-function startsWith(bytes: Uint8Array, expected: readonly number[], offset = 0): boolean {
-  if (bytes.length < offset + expected.length) return false;
-  return expected.every((value, index) => bytes[offset + index] === value);
-}
-
-function ascii(text: string): number[] {
-  return Array.from(text, (char) => char.charCodeAt(0));
-}
 
 function be16(bytes: Uint8Array, offset: number): number {
   return (bytes[offset] << 8) | bytes[offset + 1];
@@ -57,17 +51,6 @@ function le16(bytes: Uint8Array, offset: number): number {
 
 function le24(bytes: Uint8Array, offset: number): number {
   return bytes[offset] | (bytes[offset + 1] << 8) | (bytes[offset + 2] << 16);
-}
-
-/**
- * Finds the real image format from the file signature (magic bytes). The extension and the
- * browser's `file.type` come from the filename only, so neither is trusted.
- */
-export function detectImageFormat(header: Uint8Array): ImageFormat | null {
-  if (startsWith(header, PNG_SIGNATURE)) return 'png';
-  if (startsWith(header, [0xff, 0xd8, 0xff])) return 'jpeg';
-  if (startsWith(header, ascii('RIFF')) && startsWith(header, ascii('WEBP'), 8)) return 'webp';
-  return null;
 }
 
 function readPngSize(bytes: Uint8Array): ImageSize | null {

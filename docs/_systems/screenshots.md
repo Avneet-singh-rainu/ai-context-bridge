@@ -48,8 +48,9 @@ original file is never shown at full size in the list.
 
 `ScreenshotsProvider` (React context with `useReducer`) wraps the app in `App.tsx`, so the list
 survives switching between Browser, Screenshots, and Context. `screenshotListReducer` in
-`screenshot-list.ts` is a pure function for add, remove, and move. The list lives in memory only
-and is gone when the app closes.
+`screenshot-list.ts` is a pure function for add, remove, and move. The same provider holds the
+OCR text by screenshot id; see [OCR](./ocr.md). The list lives in memory only and is gone when
+the app closes.
 
 ## Limits
 
