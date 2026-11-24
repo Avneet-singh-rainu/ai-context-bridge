@@ -1,7 +1,7 @@
 /* =============================================================================================
    AI Context Bridge design system. Tokens first, then base, controls, shell, and each view.
    Principles: clarity (strong hierarchy, one primary action), deference (quiet chrome, content
-   first), depth (translucent sidebar, layered surfaces). See docs/_systems/ui-design.md.
+   first), depth (layered surfaces, soft shadows). See docs/_systems/ui-design.md.
    ============================================================================================= */
 
 :root {
@@ -14,8 +14,6 @@
 
   /* Surfaces */
   --window: #f5f5f7;
-  --sidebar: rgba(240, 240, 243, 0.62);
-  --sidebar-solid: #ececf0;
   --surface: #ffffff;
   --surface-grouped: #f5f5f7;
   --surface-raised: #ffffff;
@@ -59,8 +57,6 @@
 
   /* Layout */
   --toolbar-h: 36px;
-  --sidebar-w: 232px;
-  --sidebar-collapsed-w: 60px;
   --focus-ring: 0 0 0 3px color-mix(in srgb, var(--accent) 40%, transparent);
 
   font-family: var(--font-text);
@@ -75,8 +71,6 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --window: #1c1c1e;
-    --sidebar: rgba(32, 32, 35, 0.5);
-    --sidebar-solid: #232326;
     --surface: #1c1c1e;
     --surface-grouped: #151517;
     --surface-raised: #2c2c2e;
@@ -390,39 +384,21 @@ button {
 /* --------------------------------------------------------------------------------------------- */
 /* App shell */
 
-.app-shell {
-  display: grid;
-  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
-  height: 100vh;
-}
-
-.app-shell.is-sidebar-collapsed {
-  grid-template-columns: var(--sidebar-collapsed-w) minmax(0, 1fr);
-}
-
-.sidebar {
+.app-main {
   display: flex;
+  flex: 1;
   flex-direction: column;
+  min-width: 0;
   min-height: 0;
-  border-right: 0.5px solid var(--separator);
-  background: var(--sidebar-solid);
+  height: 100vh;
+  background: var(--surface);
 }
 
-html[data-material="mica"] .sidebar {
-  background: var(--sidebar);
-}
-
-.sidebar-top {
+.view-switcher {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
-  gap: 10px;
-  height: var(--toolbar-h);
-  padding: 0 16px;
-  -webkit-app-region: drag;
-}
-
-.sidebar-toggle {
-  margin-left: auto;
+  gap: 4px;
   -webkit-app-region: no-drag;
 }
 
@@ -430,184 +406,57 @@ html[data-material="mica"] .sidebar {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
+  margin-right: 2px;
   border-radius: 7px;
   background: linear-gradient(145deg, #3b9bff, #0058d1);
   color: #ffffff;
   box-shadow: 0 1px 3px rgba(0, 72, 170, 0.35);
 }
 
-.app-name {
-  font-family: var(--font-display);
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.sidebar-list {
-  margin: 4px 0 0;
-  padding: 0 10px;
-  list-style: none;
-}
-
-.nav-button {
-  display: flex;
+.view-switch {
+  position: relative;
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
-  width: 100%;
-  height: 34px;
-  margin-bottom: 2px;
-  padding: 0 10px;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
   border: 0;
-  border-radius: 8px;
+  border-radius: 7px;
   background: transparent;
-  color: var(--text);
-  font-size: 14px;
-  text-align: left;
-  transition: background-color var(--fast) var(--ease);
+  color: var(--text-2);
 }
 
-.nav-button svg {
-  flex-shrink: 0;
+.view-switch svg {
   color: var(--accent);
 }
 
-.nav-button:hover {
+.view-switch:hover {
   background: var(--fill);
-}
-
-.nav-button[aria-current="page"] {
-  background: var(--selection);
-  font-weight: 600;
-}
-
-.nav-label {
-  flex: 1;
-}
-
-.nav-count {
-  min-width: 20px;
-  padding: 0 6px;
-  border-radius: 9px;
-  background: var(--fill);
-  color: var(--text-2);
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 18px;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-
-.sidebar-footer {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  margin-top: auto;
-  padding: 12px 16px 14px;
-  border-top: 0.5px solid var(--separator);
-  color: var(--text-2);
-  font-size: 12px;
-}
-
-.footer-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.footer-row span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.footer-row svg {
-  flex-shrink: 0;
-}
-
-.status-dot {
-  flex-shrink: 0;
-  width: 8px;
-  height: 8px;
-  margin: 0 3px;
-  border-radius: 50%;
-  background: var(--text-3);
-}
-
-.status-capture[data-kind="capturing"] .status-dot,
-.status-capture[data-kind="extracting"] .status-dot {
-  background: var(--accent);
-  animation: pulse 0.8s var(--ease) infinite alternate;
-}
-
-.status-capture[data-kind="captured"] .status-dot,
-.status-capture[data-kind="extracted"] .status-dot {
-  background: var(--green);
-}
-
-.status-capture[data-kind="failed"] .status-dot {
-  background: var(--red);
-}
-
-.status-capture[data-kind="captured"],
-.status-capture[data-kind="extracted"] {
   color: var(--text);
 }
 
-.status-network[data-recording="true"] .status-dot {
-  background: var(--red);
-  animation: pulse 0.9s var(--ease) infinite alternate;
+.view-switch[aria-current="page"] {
+  background: var(--selection);
+  color: var(--text);
 }
 
-.footer-version {
-  color: var(--text-3);
-  font-size: 11px;
-}
-
-.sidebar.is-collapsed .sidebar-top {
-  justify-content: center;
-  padding: 0;
-}
-
-.sidebar.is-collapsed .app-mark,
-.sidebar.is-collapsed .app-name,
-.sidebar.is-collapsed .nav-label,
-.sidebar.is-collapsed .nav-count,
-.sidebar.is-collapsed .sidebar-footer {
-  display: none;
-}
-
-.sidebar.is-collapsed .sidebar-toggle {
-  margin-left: 0;
-}
-
-.sidebar.is-collapsed .sidebar-list {
-  padding: 4px 7px;
-}
-
-.sidebar.is-collapsed .nav-button {
-  justify-content: center;
-  padding: 0;
-}
-
-@keyframes pulse {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0.3;
-  }
-}
-
-.app-main {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  background: var(--surface);
+.view-count {
+  position: absolute;
+  top: -3px;
+  right: -4px;
+  min-width: 14px;
+  padding: 0 3px;
+  border-radius: 7px;
+  background: var(--fill-strong);
+  color: var(--text);
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 14px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 /* --------------------------------------------------------------------------------------------- */
@@ -713,6 +562,15 @@ html[data-material="mica"] .sidebar {
 
 .browser-toolbar .toolbar-actions {
   gap: 6px;
+  margin-left: 0;
+}
+
+/* Thin rules separate the views, tabs, search, actions, and tab controls. */
+.toolbar-divider {
+  flex-shrink: 0;
+  width: 1px;
+  height: 18px;
+  background: var(--separator);
 }
 
 .search-nav {
@@ -759,6 +617,15 @@ html[data-material="mica"] .sidebar {
   max-width: 620px;
   min-width: 140px;
   margin: 0 auto;
+}
+
+/* The browser keeps the search field at a fixed width, centred between two tab groups. */
+.browser-toolbar .search-address {
+  flex: 0 0 320px;
+  width: 320px;
+  max-width: 320px;
+  min-width: 320px;
+  margin: 0;
 }
 
 .address-input {
@@ -884,77 +751,96 @@ html[data-material="mica"] .sidebar {
 
 .browser-tabs {
   display: flex;
-  flex: 0 1 auto;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 2px;
+  min-width: 120px;
+  height: 28px;
+}
+
+.browser-toolbar .tab-group {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.tab-controls {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.tab-strip-scroll {
+  display: flex;
+  flex: 1;
   align-items: center;
   gap: 3px;
   min-width: 0;
-  max-width: 320px;
+  height: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tab-strip-scroll::-webkit-scrollbar {
+  display: none;
 }
 
 .browser-tab {
   display: flex;
-  flex: 0 1 116px;
+  flex: 0 0 auto;
   align-items: center;
-  min-width: 34px;
-  max-width: 132px;
-  height: 24px;
+  height: 26px;
+  border: 0.5px solid var(--separator);
   border-radius: 6px;
-}
-
-.browser-tab.is-active {
-  flex-basis: 148px;
-  max-width: 148px;
-  background: var(--fill-hover);
-}
-
-.browser-tab:hover {
   background: var(--fill);
 }
 
+.browser-tab.is-active {
+  border-color: var(--accent);
+  background: var(--selection);
+}
+
 .tab-select {
-  display: flex;
-  flex: 1;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
-  min-width: 0;
-  height: 100%;
-  padding: 0 1px 0 6px;
+  justify-content: center;
+  width: 40px;
+  height: 24px;
+  padding: 0;
   border: 0;
+  border-radius: 5px;
   background: transparent;
   color: var(--text-2);
-  font-size: 11px;
-  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .browser-tab.is-active .tab-select {
-  color: var(--text);
-  font-weight: 500;
+  color: var(--accent);
 }
 
-.tab-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.tab-number {
+  line-height: 1;
 }
 
-.tab-close,
-.tab-new,
-.tab-overflow {
+.tab-close {
   display: inline-flex;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
   width: 18px;
   height: 18px;
+  margin-right: 2px;
   padding: 0;
   border: 0;
-  border-radius: 5px;
+  border-radius: 4px;
   background: transparent;
   color: var(--text-2);
-}
-
-.tab-close {
-  margin-right: 1px;
   opacity: 0;
 }
 
@@ -963,40 +849,80 @@ html[data-material="mica"] .sidebar {
   opacity: 1;
 }
 
-.tab-overflow {
-  gap: 1px;
-  width: auto;
-  min-width: 26px;
-  padding: 0 4px;
-  font-size: 10px;
-  font-variant-numeric: tabular-nums;
-}
-
 .tab-close:hover,
 .tab-new:hover,
-.tab-overflow:hover {
+.tab-scroll:hover:not(:disabled),
+.tab-all:hover {
   background: var(--fill-strong);
   color: var(--text);
 }
 
-.tab-menu-wrap {
+.tab-new,
+.tab-scroll,
+.tab-all {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-2);
+}
+
+.tab-new {
+  width: 20px;
+}
+
+/* The new-tab button is pinned beside the search field, outside both scrolling strips. */
+.browser-toolbar .tab-new-fixed {
+  width: 24px;
+  height: 24px;
+}
+
+.tab-scroll {
+  width: 18px;
+}
+
+.tab-scroll:disabled {
+  opacity: 0.25;
+}
+
+.tab-all {
+  width: 22px;
+}
+
+.tab-all-wrap {
   position: relative;
   flex-shrink: 0;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
 
 .tab-menu {
   position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
+  top: 100%;
+  right: 0;
   z-index: 20;
-  min-width: 220px;
-  max-height: 260px;
+  min-width: 240px;
+  max-height: 300px;
   overflow: auto;
   padding: 4px;
   border: 0.5px solid var(--separator);
   border-radius: 10px;
   background: var(--surface-raised);
   box-shadow: var(--shadow-3);
+  -webkit-app-region: no-drag;
+}
+
+.tab-menu-empty {
+  padding: 8px;
+  color: var(--text-2);
+  font-size: 12px;
 }
 
 .tab-menu-row {
@@ -1005,7 +931,8 @@ html[data-material="mica"] .sidebar {
   border-radius: 6px;
 }
 
-.tab-menu-row:hover {
+.tab-menu-row:hover,
+.tab-menu-row.is-active {
   background: var(--fill);
 }
 
@@ -1024,10 +951,18 @@ html[data-material="mica"] .sidebar {
   text-align: left;
 }
 
-.tab-menu-row span {
+.tab-menu-row > button:first-child span:last-child {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.tab-menu-number {
+  min-width: 16px;
+  color: var(--accent);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
 }
 
 .tab-menu-close {
@@ -1047,27 +982,6 @@ html[data-material="mica"] .sidebar {
 .tab-menu-close:hover {
   background: var(--fill-strong);
   color: var(--text);
-}
-
-@media (max-width: 1240px) {
-  .browser-tabs {
-    max-width: 190px;
-  }
-
-  .browser-tab:not(.is-active) {
-    flex-basis: 24px;
-    min-width: 24px;
-  }
-
-  .browser-tab:not(.is-active) .tab-title,
-  .browser-tab:not(.is-active) .tab-close {
-    display: none;
-  }
-
-  .browser-tab.is-active {
-    flex-basis: 118px;
-    max-width: 118px;
-  }
 }
 
 .browser-notice {
