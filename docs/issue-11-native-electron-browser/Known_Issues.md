@@ -10,8 +10,10 @@
 hid some bot signals, but the native view no longer uses those Chrome flags. Google may still reject
 the page as unsafe or unsupported.
 
-**What was tried:** Electron's user agent drops `Electron/x` and app tokens through
-`plainChromeUserAgent`. The old CDP identity flags are gone with the Chrome process.
+**What was tried:** An earlier build dropped `Electron/x` and app tokens through
+`plainChromeUserAgent`. Current Google sign-in rejects that stock-Chrome-shaped user agent. The
+browser now leaves Electron's own user agent unchanged, as VS Code does. The old CDP identity flags
+are gone with the Chrome process.
 
 **Why not fully fixed here:** Google sign-in needs a real account and a person at the keyboard. TC6
 in [Test_Cases.md](Test_Cases.md) records the check. If Google still refuses sign-in, the app shows
@@ -52,3 +54,32 @@ browser keyboard shortcuts such as F5, Alt+Left, or Ctrl+L.
 
 **Blast radius:** Users who need tabs, full-page capture, or browser shortcuts need a full browser.
 See [issue-6 Known_Issues](../issue-6-in-app-browser/Known_Issues.md).
+
+---
+
+## 4. VS Code study done; sign-in still needs a real-account check
+
+**Status:** Study complete - parity work local - manual check still open
+
+**Added:** 2026-11-23
+
+**Updated:** 2026-11-24
+
+**What the study found:** VS Code's integrated browser uses native `WebContentsView`. For allowed
+popups, the page handler returns `action: 'allow'`, a `createWindow` function that returns a child
+`webContents`, and `outlivesOpener: true`. VS Code has no Google-specific sign-in code, bot flags,
+or special Google user agent. The Simple Browser extension only wraps an iframe and hands off to
+the integrated browser.
+
+**What changed locally:** `setWindowOpenHandler` now returns a child `webContents` for allowed
+http(s), `about:blank`, and empty-URL popups, so `window.opener` survives sign-in flows. A renderer
+form now answers Electron `login` events for HTTP and proxy credentials. Switching or closing the
+tab closes the form. The browser no longer rewrites the user agent. The `persist:browser` partition
+keeps cookies and sign-in state across launches.
+
+**Why sign-in is still open:** A real Google account and a person at the keyboard are needed. The
+form above handles HTTP credentials, not Google's interactive sign-in page. No Chrome fallback,
+Chrome overlay, or WebView2 handoff was added. ADR 0005 accepts the remaining risk.
+
+**Blast radius:** Normal browsing, capture, extraction, and network recording are unchanged.
+Opener-based sign-in popups now stay inside the app instead of being denied.

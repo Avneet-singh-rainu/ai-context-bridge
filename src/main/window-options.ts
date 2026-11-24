@@ -1,7 +1,7 @@
 import type { BrowserWindowConstructorOptions } from 'electron';
 
 /** Height of the app's top toolbar; the Windows caption buttons are drawn at this height. */
-export const TOOLBAR_HEIGHT = 52;
+export const TOOLBAR_HEIGHT = 36;
 
 export interface WindowLook {
   /** Dark system theme: decides the caption button colour. */

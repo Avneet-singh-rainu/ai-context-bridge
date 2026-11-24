@@ -31,8 +31,9 @@ electron-vite builds each part into `out/main/`, `out/preload/`, and `out/render
 - Channels today: `app:get-info` (issue-3), `ocr:recognize` and `context:save` (issue-5), and
   the `browser:*` channels (issue-6, see [Browser](./browser.md)). `browser:state` is the only
   main-to-renderer event; the preload wraps it so the renderer never sees the IPC event object.
-- The window holds a second web contents: the built-in browser's `WebContentsView`, drawn on top
-  of the app page, with no preload and its own session.
+- The window can hold several web contents: one built-in browser `WebContentsView` per open tab,
+  drawn on top of the app page. Main shows only the active tab's view. Page views have no preload
+  and use their own session.
 - Pure code used by both main and renderer lives in `src/shared/` (the IPC contract,
   `image-format.ts`, `address.ts`, `page-content.ts`, and `redact.ts`).
 - The app window denies new windows and blocks navigation away from its own page.

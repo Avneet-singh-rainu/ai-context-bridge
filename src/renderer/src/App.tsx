@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { DEFAULT_VIEW, NAV_ITEMS, type ViewId } from './components/navigation';
 import { Sidebar } from './components/Sidebar';
 import { BrowserProvider } from './features/browser/BrowserProvider';
@@ -19,28 +19,34 @@ const WORKSPACES: Record<ViewId, () => React.JSX.Element> = {
 /** The window layout. Lives inside the providers so the sidebar can show live counts. */
 function Shell() {
   const [activeView, setActiveView] = useState<ViewId>(DEFAULT_VIEW);
+  const [collapsed, setCollapsed] = useState(false);
   const { screenshots } = useScreenshots();
   const { pages } = usePageContent();
   const { review } = useContextReview();
   const { network } = useNetwork();
   const ActiveWorkspace = WORKSPACES[activeView];
 
-  const contextIds = [
-    ...review.notes.filter((note) => note.text.trim() !== '').map((note) => `note:${note.id}`),
-    ...screenshots.map((shot) => `screenshot:${shot.id}`),
-    ...pages.map((page) => `page:${page.id}`),
-  ];
-  const included =
-    contextIds.filter((id) => review.excluded[id] !== true).length +
-    network.entries.filter((entry) => review.optedIn[`network:${entry.id}`] === true).length;
+  const counts = useMemo(() => {
+    const contextIds = [
+      ...review.notes.filter((note) => note.text.trim() !== '').map((note) => `note:${note.id}`),
+      ...screenshots.map((shot) => `screenshot:${shot.id}`),
+      ...pages.map((page) => `page:${page.id}`),
+    ];
+    const included =
+      contextIds.filter((id) => review.excluded[id] !== true).length +
+      network.entries.filter((entry) => review.optedIn[`network:${entry.id}`] === true).length;
+    return { screenshots: screenshots.length, context: included };
+  }, [review.notes, review.excluded, review.optedIn, screenshots, pages, network.entries]);
 
   return (
-    <div className="app-shell">
+    <div className={collapsed ? 'app-shell is-sidebar-collapsed' : 'app-shell'}>
       <Sidebar
         items={NAV_ITEMS}
         activeView={activeView}
-        counts={{ screenshots: screenshots.length, context: included }}
+        counts={counts}
         onSelect={setActiveView}
+        collapsed={collapsed}
+        onToggle={() => setCollapsed((value) => !value)}
       />
       <main className="app-main">
         <ActiveWorkspace />
