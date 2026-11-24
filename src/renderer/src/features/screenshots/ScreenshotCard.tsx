@@ -6,13 +6,14 @@ import {
   CircleExclamationPoint,
   Globe,
   LoaderCircle,
+  ScanText,
   Trash,
 } from 'lucide-react';
 import { pageUrlForExport } from '../../../../shared/address';
 import { formatBytes, type ImageFormat } from './image-validation';
 import type { Screenshot } from './import-screenshots';
 import { describeOcr } from './ocr-status';
-import type { OcrEntry } from './ocr-store';
+import { needsExtraction, type OcrEntry } from './ocr-store';
 
 const FORMAT_LABELS: Record<ImageFormat, string> = { png: 'PNG', jpeg: 'JPG', webp: 'WEBP' };
 
@@ -30,8 +31,13 @@ interface ScreenshotCardProps {
   ocr: OcrEntry | undefined;
   index: number;
   total: number;
+  canExtract: boolean;
+  busy: boolean;
   onMove: (id: string, toIndex: number) => void;
   onRemove: (id: string) => void;
+  onExtractText: (id: string) => void;
+  onEditText: (id: string, text: string) => void;
+  onRestoreText: (id: string) => void;
 }
 
 export function ScreenshotCard({
@@ -39,12 +45,19 @@ export function ScreenshotCard({
   ocr,
   index,
   total,
+  canExtract,
+  busy,
   onMove,
   onRemove,
+  onExtractText,
+  onEditText,
+  onRestoreText,
 }: ScreenshotCardProps) {
   const { id, fileName, format, sizeBytes, width, height, thumbnailUrl, source } = screenshot;
   const position = index + 1;
   const sourceUrl = source ? pageUrlForExport(source.url) : '';
+  const canExtractHere = canExtract && needsExtraction(ocr);
+  const doneOcr = ocr?.status === 'done' ? ocr : undefined;
 
   return (
     <li className="shot-card">
@@ -103,6 +116,37 @@ export function ScreenshotCard({
           <OcrIcon entry={ocr} />
           {describeOcr(ocr)}
         </p>
+        {canExtractHere && (
+          <button
+            type="button"
+            className="btn btn-plain shot-extract"
+            disabled={busy}
+            onClick={() => onExtractText(id)}
+          >
+            <ScanText size={13} aria-hidden="true" />
+            Extract text
+          </button>
+        )}
+        {doneOcr && (
+          <div className="shot-text">
+            <div className="shot-text-head">
+              <span>Text for this screenshot</span>
+              {doneOcr.text !== doneOcr.extractedText && (
+                <button type="button" className="btn btn-plain" onClick={() => onRestoreText(id)}>
+                  Restore
+                </button>
+              )}
+            </div>
+            <textarea
+              className="shot-ocr-editor"
+              aria-label={`Extracted text for ${fileName}`}
+              rows={4}
+              value={doneOcr.text}
+              placeholder="No text found. You can type text here."
+              onChange={(event) => onEditText(id, event.currentTarget.value)}
+            />
+          </div>
+        )}
       </div>
     </li>
   );

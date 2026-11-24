@@ -1,5 +1,5 @@
-import { StickyNote } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { Pencil, StickyNote } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import type { Screenshot } from '../screenshots/import-screenshots';
 import { describeOcr } from '../screenshots/ocr-status';
 import type { OcrEntry } from '../screenshots/ocr-store';
@@ -137,6 +137,7 @@ export function ScreenshotTextEditor({
   onRestore: (id: string) => void;
 }) {
   const { id, fileName, thumbnailUrl } = screenshot;
+  const [showText, setShowText] = useState(false);
   const isEdited = entry?.status === 'done' && entry.text !== entry.extractedText;
   const lineCount = entry?.text.split('\n').length ?? 0;
 
@@ -151,6 +152,12 @@ export function ScreenshotTextEditor({
           <span className="text-editor-status">{describeOcr(entry)}</span>
         </div>
         <div className="item-actions">
+          {entry?.status === 'done' && (
+            <button type="button" className="btn btn-plain" onClick={() => setShowText(!showText)}>
+              <Pencil size={13} aria-hidden="true" />
+              {showText ? 'Hide text' : 'Edit text'}
+            </button>
+          )}
           {isEdited && (
             <button type="button" className="btn btn-plain" onClick={() => onRestore(id)}>
               Restore
@@ -160,14 +167,16 @@ export function ScreenshotTextEditor({
         </div>
       </div>
       {entry?.status === 'done' ? (
-        <textarea
-          aria-label={`Text from screenshot ${position}, ${fileName}`}
-          value={entry.text}
-          placeholder="No text was found. Type text here to add it to the package."
-          rows={Math.min(14, Math.max(3, lineCount + 1))}
-          spellCheck={false}
-          onChange={(event) => onEdit(id, event.target.value)}
-        />
+        showText && (
+          <textarea
+            aria-label={`Text from screenshot ${position}, ${fileName}`}
+            value={entry.text}
+            placeholder="No text was found. Type text here to add it to the package."
+            rows={Math.min(14, Math.max(3, lineCount + 1))}
+            spellCheck={false}
+            onChange={(event) => onEdit(id, event.target.value)}
+          />
+        )
       ) : (
         <p
           className={

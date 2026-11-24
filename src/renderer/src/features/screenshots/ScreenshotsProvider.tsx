@@ -28,6 +28,8 @@ interface ScreenshotsContextValue {
   /** False when the renderer runs outside Electron, where there is no OCR bridge. */
   canExtract: boolean;
   extractText: () => Promise<void>;
+  /** Runs OCR for one screenshot, when that screenshot still needs text. */
+  recognizeOne: (id: string) => Promise<void>;
   editText: (id: string, text: string) => void;
   restoreText: (id: string) => void;
 }
@@ -110,34 +112,62 @@ export function ScreenshotsProvider({ children }: { children: ReactNode }) {
     [runImport],
   );
 
+  const isListed = useCallback(
+    (id: string) => screenshotsRef.current.some((shot) => shot.id === id),
+    [],
+  );
+
+  const runOne = useCallback(
+    async (screenshot: Screenshot) => {
+      dispatchOcr({ type: 'start', id: screenshot.id });
+      const response = await recognize(screenshot);
+      // The user may remove a screenshot while its OCR runs; drop that result.
+      if (!isListed(screenshot.id)) return;
+      dispatchOcr(
+        response.ok
+          ? { type: 'succeed', id: screenshot.id, result: response.result }
+          : {
+              type: 'fail',
+              id: screenshot.id,
+              error: response.error.replace(/^Text extraction failed\.\s*/, ''),
+            },
+      );
+    },
+    [isListed],
+  );
+
   /** Runs OCR on each screenshot without text, one at a time, in list order. */
   const extractText = useCallback(async () => {
-    const isListed = (id: string) => screenshotsRef.current.some((shot) => shot.id === id);
     if (extractingRef.current) return;
     extractingRef.current = true;
     setExtracting(true);
     try {
       for (const screenshot of [...screenshotsRef.current]) {
         if (!isListed(screenshot.id) || !needsExtraction(ocrRef.current[screenshot.id])) continue;
-        dispatchOcr({ type: 'start', id: screenshot.id });
-        const response = await recognize(screenshot);
-        // The user may remove a screenshot while its OCR runs; drop that result.
-        if (!isListed(screenshot.id)) continue;
-        dispatchOcr(
-          response.ok
-            ? { type: 'succeed', id: screenshot.id, result: response.result }
-            : {
-                type: 'fail',
-                id: screenshot.id,
-                error: response.error.replace(/^Text extraction failed\.\s*/, ''),
-              },
-        );
+        await runOne(screenshot);
       }
     } finally {
       extractingRef.current = false;
       setExtracting(false);
     }
-  }, []);
+  }, [isListed, runOne]);
+
+  const recognizeOne = useCallback(
+    async (id: string) => {
+      if (extractingRef.current) return;
+      const screenshot = screenshotsRef.current.find((shot) => shot.id === id);
+      if (!screenshot || !needsExtraction(ocrRef.current[id])) return;
+      extractingRef.current = true;
+      setExtracting(true);
+      try {
+        await runOne(screenshot);
+      } finally {
+        extractingRef.current = false;
+        setExtracting(false);
+      }
+    },
+    [runOne],
+  );
 
   const remove = useCallback((id: string) => {
     dispatch({ type: 'remove', id });
@@ -166,6 +196,7 @@ export function ScreenshotsProvider({ children }: { children: ReactNode }) {
       extracting,
       canExtract,
       extractText,
+      recognizeOne,
       editText,
       restoreText,
     }),
@@ -181,6 +212,7 @@ export function ScreenshotsProvider({ children }: { children: ReactNode }) {
       extracting,
       canExtract,
       extractText,
+      recognizeOne,
       editText,
       restoreText,
     ],

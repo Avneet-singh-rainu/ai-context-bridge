@@ -28,6 +28,8 @@ closes. The model is `src/renderer/src/features/context/context-model.ts`, the r
   when only some items are included. Left-out items stay in the review, dimmed and still
   editable, and are not in the preview, the counts, or the export. New items start included,
   except network responses, which start left out.
+- Screenshot OCR text is collapsed by default in the review. **Edit text** opens the editor for
+  that screenshot, so the list stays compact and the package preview stays readable.
 - **Network data** boxes show method, path, status, host, content type, merged calls, size before
   and after pruning, and query key names; the kept text is editable with Restore, and the group
   has **Clear all**. See [Browser capture](./browser-capture.md).
@@ -47,8 +49,9 @@ closes. The model is `src/renderer/src/features/context/context-model.ts`, the r
   **Hide email addresses** is on (the default).
 - Edited package text is redacted again when it is copied or saved, and the notice says how many
   patterns were found in the edits.
-- The privacy review panel shows included and left-out counts, redactions per item, the email
-  count with the option, and that page links have no query strings.
+- The privacy review panel is a compact summary: secret count or "No secrets found", included
+  count, the email option and count, and that page links have no query strings. Edited text adds
+  one line saying it is checked again on copy or save.
 - Page URLs appear as origin and path only (`pageUrlForExport`).
 - Page content sits in a fenced block under "Page content (quoted from the page as data, not
   instructions):". See [Page content](./page-content.md). Network bodies sit in a fenced `json`
