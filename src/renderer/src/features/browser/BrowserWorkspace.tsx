@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { type FormEvent, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { PageSecurity } from '../../../../shared/address';
+import { ViewSwitcher } from '../../components/ViewSwitcher';
 import { useNetwork } from '../capture/NetworkProvider';
 import { BrowserLoginPrompt } from './BrowserLoginPrompt';
 import { useBrowser } from './BrowserProvider';
@@ -31,7 +32,6 @@ const SECURITY: Record<PageSecurity, { label: string; Icon: typeof Lock }> = {
 };
 
 const SUGGESTIONS = ['example.com', 'wikipedia.org', 'developer.mozilla.org'];
-const VISIBLE_TABS = 3;
 
 function hostOf(url: string): string {
   try {
@@ -41,8 +41,11 @@ function hostOf(url: string): string {
   }
 }
 
-/** Keeps the native browser view exactly over the viewport box while this workspace is shown. */
-function useBrowserViewBounds(viewport: React.RefObject<HTMLDivElement | null>) {
+/** Keeps the native browser view over the viewport, except when a renderer panel needs the space. */
+function useBrowserViewBounds(
+  viewport: React.RefObject<HTMLDivElement | null>,
+  overlayOpen: boolean,
+) {
   useLayoutEffect(() => {
     const element = viewport.current;
     const api = window.bridge;
@@ -56,7 +59,7 @@ function useBrowserViewBounds(viewport: React.RefObject<HTMLDivElement | null>) 
         y: box.top,
         width: box.width,
         height: box.height,
-        visible: true,
+        visible: !overlayOpen,
       });
     };
     // One resize frame can produce several layout events; main only needs the last box.
@@ -74,7 +77,7 @@ function useBrowserViewBounds(viewport: React.RefObject<HTMLDivElement | null>) 
       // Other workspaces draw in this area, so the page view must not cover them.
       api.browserSetBounds({ x: 0, y: 0, width: 0, height: 0, visible: false });
     };
-  }, [viewport]);
+  }, [viewport, overlayOpen]);
 }
 
 /** Browser view with one 36 px bar holding tabs, navigation, address, and page actions. */
@@ -92,6 +95,8 @@ export function BrowserWorkspace() {
   } = useBrowser();
   const viewportRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const leftTabStripRef = useRef<HTMLDivElement>(null);
+  const rightTabStripRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState(state.url);
   const [editing, setEditing] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -101,24 +106,111 @@ export function BrowserWorkspace() {
   const [recordError, setRecordError] = useState<string | null>(null);
   const [recordBusy, setRecordBusy] = useState(false);
   const [closedNotice, setClosedNotice] = useState<string | null>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
-  useBrowserViewBounds(viewportRef);
+  const [allTabsOpen, setAllTabsOpen] = useState(false);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const [leftCapacity, setLeftCapacity] = useState(4);
+  useBrowserViewBounds(viewportRef, allTabsOpen);
 
   useEffect(() => {
     if (!editing) setDraft(state.url);
   }, [state.url, editing]);
 
-  // Keep the active tab visible; push earlier tabs into the overflow menu when needed.
-  const activeIndex = state.tabs.findIndex((tab) => tab.id === state.activeTabId);
-  const shown = state.tabs.slice(0, VISIBLE_TABS);
-  const hidden = state.tabs.slice(VISIBLE_TABS);
-  if (activeIndex >= VISIBLE_TABS) {
-    shown.splice(2, 1, state.tabs[activeIndex]);
-    hidden.splice(
-      hidden.findIndex((tab) => tab.id === state.activeTabId),
-      1,
+  // The left group fills first; measure how many numbered tabs fit before the right group starts.
+  useEffect(() => {
+    const strip = leftTabStripRef.current;
+    if (!strip) return;
+    const measure = () => {
+      const firstTab = strip.querySelector<HTMLElement>('.browser-tab');
+      const slot = firstTab ? firstTab.getBoundingClientRect().width + 3 : 64;
+      setLeftCapacity(Math.max(1, Math.floor(strip.clientWidth / slot)));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(strip);
+    return () => observer.disconnect();
+  }, [state.tabs.length]);
+
+  useEffect(() => {
+    const strips = [leftTabStripRef.current, rightTabStripRef.current].filter(
+      (strip): strip is HTMLDivElement => strip !== null,
     );
-  }
+    const tabCount = state.tabs.length;
+    const updateScroll = () => {
+      setCanScrollLeft(strips.some((strip) => strip.scrollLeft > 1));
+      setCanScrollRight(
+        tabCount > 0 &&
+          strips.some((strip) => strip.scrollLeft + strip.clientWidth < strip.scrollWidth - 1),
+      );
+    };
+    updateScroll();
+    const observer = new ResizeObserver(updateScroll);
+    for (const strip of strips) observer.observe(strip);
+    return () => observer.disconnect();
+  }, [state.tabs.length]);
+
+  useEffect(() => {
+    if (state.tabs.length === 0) return;
+    const strips = [leftTabStripRef.current, rightTabStripRef.current].filter(
+      (strip): strip is HTMLDivElement => strip !== null,
+    );
+    for (const strip of strips) {
+      const active = Array.from(strip.querySelectorAll<HTMLElement>('[data-tab-id]')).find(
+        (element) => element.dataset.tabId === state.activeTabId,
+      );
+      if (active) {
+        active.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        break;
+      }
+    }
+  }, [state.activeTabId, state.tabs.length]);
+
+  const scrollTabs = (direction: -1 | 1) => {
+    for (const strip of [leftTabStripRef.current, rightTabStripRef.current]) {
+      strip?.scrollBy({ left: direction * 160, behavior: 'smooth' });
+    }
+  };
+
+  const tabs = state.tabs.map((tab, index) => ({ tab, index }));
+  const leftTabs = tabs.slice(0, leftCapacity);
+  const rightTabs = tabs.slice(leftCapacity);
+
+  const renderTab = ({ tab, index }: (typeof tabs)[number]) => {
+    const active = tab.id === state.activeTabId;
+    const label = tab.title || 'New tab';
+    return (
+      <div className={active ? 'browser-tab is-active' : 'browser-tab'} key={tab.id}>
+        <button
+          type="button"
+          className="tab-select"
+          role="tab"
+          aria-selected={active}
+          data-active={active}
+          data-tab-id={tab.id}
+          title={`${index + 1}: ${label}${tab.url ? ` - ${tab.url}` : ''}`}
+          onClick={() => selectTab(tab.id)}
+          onAuxClick={(event) => {
+            if (event.button === 1) closeTab(tab.id);
+          }}
+        >
+          {tab.isLoading ? (
+            <LoaderCircle size={12} className="spin" aria-hidden="true" />
+          ) : (
+            <span className="tab-number">{index + 1}</span>
+          )}
+        </button>
+        <button
+          type="button"
+          className="tab-close"
+          aria-label={`Close tab ${index + 1}: ${label}`}
+          title="Close tab"
+          onClick={() => closeTab(tab.id)}
+        >
+          <X size={10} aria-hidden="true" />
+        </button>
+      </div>
+    );
+  };
 
   const go = async (address: string) => {
     setAddressError(null);
@@ -165,122 +257,17 @@ export function BrowserWorkspace() {
   return (
     <section className="view browser-workspace" aria-label="Browser">
       <header className="toolbar browser-toolbar">
-        <div className="browser-tabs">
-          {shown.map((tab) => {
-            const active = tab.id === state.activeTabId;
-            return (
-              <div className={active ? 'browser-tab is-active' : 'browser-tab'} key={tab.id}>
-                <button
-                  type="button"
-                  className="tab-select"
-                  role="tab"
-                  aria-selected={active}
-                  title={tab.url || tab.title}
-                  onClick={() => selectTab(tab.id)}
-                >
-                  {tab.isLoading ? (
-                    <LoaderCircle size={12} className="spin" aria-hidden="true" />
-                  ) : null}
-                  <span className="tab-title">{tab.title || 'New tab'}</span>
-                </button>
-                <button
-                  type="button"
-                  className="tab-close"
-                  aria-label={`Close ${tab.title || 'New tab'}`}
-                  title="Close tab"
-                  onClick={() => closeTab(tab.id)}
-                >
-                  <X size={11} aria-hidden="true" />
-                </button>
-              </div>
-            );
-          })}
-          <button
-            type="button"
-            className="tab-new"
-            aria-label="New tab"
-            title="New tab"
-            onClick={newTab}
-          >
-            <Plus size={15} strokeWidth={2} aria-hidden="true" />
-          </button>
-          {hidden.length > 0 && (
-            <div className="tab-menu-wrap">
-              <button
-                type="button"
-                className="tab-overflow"
-                aria-label={`${hidden.length} more tabs`}
-                aria-expanded={menuOpen}
-                title="More tabs"
-                onClick={() => setMenuOpen((value) => !value)}
-              >
-                <Ellipsis size={14} aria-hidden="true" />
-                {hidden.length}
-              </button>
-              {menuOpen && (
-                <div className="tab-menu" role="menu">
-                  {hidden.map((tab) => (
-                    <div className="tab-menu-row" key={tab.id}>
-                      <button
-                        type="button"
-                        role="menuitem"
-                        title={tab.url || tab.title}
-                        onClick={() => {
-                          selectTab(tab.id);
-                          setMenuOpen(false);
-                        }}
-                      >
-                        <span>{tab.title || 'New tab'}</span>
-                      </button>
-                      <button
-                        type="button"
-                        className="tab-menu-close"
-                        aria-label={`Close ${tab.title || 'New tab'}`}
-                        title="Close tab"
-                        onClick={() => closeTab(tab.id)}
-                      >
-                        <X size={12} aria-hidden="true" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+        <ViewSwitcher />
+
+        <div className="toolbar-divider" aria-hidden="true" />
+
+        <div className="browser-tabs tab-group" role="tablist" aria-label="Browser tabs">
+          <div ref={leftTabStripRef} className="tab-strip-scroll">
+            {leftTabs.map(renderTab)}
+          </div>
         </div>
 
-        <div className="nav-group search-nav">
-          <button
-            type="button"
-            className="icon-btn"
-            aria-label="Back"
-            title="Back"
-            disabled={!state.canGoBack}
-            onClick={() => command('back')}
-          >
-            <ChevronLeft size={18} strokeWidth={2} />
-          </button>
-          <button
-            type="button"
-            className="icon-btn"
-            aria-label="Forward"
-            title="Forward"
-            disabled={!state.canGoForward}
-            onClick={() => command('forward')}
-          >
-            <ChevronRight size={18} strokeWidth={2} />
-          </button>
-          <button
-            type="button"
-            className="icon-btn"
-            aria-label={state.isLoading ? 'Stop' : 'Reload'}
-            title={state.isLoading ? 'Stop' : 'Reload'}
-            disabled={!state.hasPage}
-            onClick={() => command(state.isLoading ? 'stop' : 'reload')}
-          >
-            {state.isLoading ? <X size={16} /> : <RotateCw size={15} />}
-          </button>
-        </div>
+        <div className="toolbar-divider" aria-hidden="true" />
 
         <form className="address-form search-address" onSubmit={submit}>
           <input
@@ -314,6 +301,59 @@ export function BrowserWorkspace() {
             <Search size={14} className="address-icon" aria-hidden="true" />
           )}
         </form>
+
+        <button
+          type="button"
+          className="tab-new tab-new-fixed"
+          aria-label="New tab"
+          title="New tab"
+          onClick={newTab}
+        >
+          <Plus size={13} strokeWidth={2} aria-hidden="true" />
+        </button>
+
+        <div className="toolbar-divider" aria-hidden="true" />
+
+        <div className="browser-tabs tab-group" role="tablist" aria-label="Browser tabs, continued">
+          <div ref={rightTabStripRef} className="tab-strip-scroll">
+            {rightTabs.map(renderTab)}
+          </div>
+        </div>
+
+        <div className="toolbar-divider" aria-hidden="true" />
+
+        <div className="nav-group search-nav">
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label="Back"
+            title="Back"
+            disabled={!state.canGoBack}
+            onClick={() => command('back')}
+          >
+            <ChevronLeft size={18} strokeWidth={2} />
+          </button>
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label="Forward"
+            title="Forward"
+            disabled={!state.canGoForward}
+            onClick={() => command('forward')}
+          >
+            <ChevronRight size={18} strokeWidth={2} />
+          </button>
+          <button
+            type="button"
+            className="icon-btn"
+            aria-label={state.isLoading ? 'Stop' : 'Reload'}
+            title={state.isLoading ? 'Stop' : 'Reload'}
+            disabled={!state.hasPage}
+            onClick={() => command(state.isLoading ? 'stop' : 'reload')}
+          >
+            {state.isLoading ? <X size={16} /> : <RotateCw size={15} />}
+          </button>
+        </div>
 
         <div className="toolbar-actions search-actions">
           <button
@@ -361,6 +401,97 @@ export function BrowserWorkspace() {
             <Camera size={16} strokeWidth={1.9} aria-hidden="true" />
           </button>
         </div>
+
+        <div className="toolbar-divider" aria-hidden="true" />
+
+        <fieldset
+          className="tab-controls"
+          aria-label="Tab navigation"
+          onMouseEnter={() => setAllTabsOpen(true)}
+          onMouseLeave={() => setAllTabsOpen(false)}
+          onFocus={() => setAllTabsOpen(true)}
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+              setAllTabsOpen(false);
+            }
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') setAllTabsOpen(false);
+          }}
+        >
+          <button
+            type="button"
+            className="tab-scroll"
+            aria-label="Scroll tabs left"
+            title="Scroll tabs left"
+            disabled={!canScrollLeft}
+            onClick={() => scrollTabs(-1)}
+          >
+            <ChevronLeft size={14} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="tab-scroll"
+            aria-label="Scroll tabs right"
+            title="Scroll tabs right"
+            disabled={!canScrollRight}
+            onClick={() => scrollTabs(1)}
+          >
+            <ChevronRight size={14} aria-hidden="true" />
+          </button>
+          <div className="tab-all-wrap">
+            <button
+              type="button"
+              className="tab-all"
+              aria-label="All tabs"
+              aria-expanded={allTabsOpen}
+              title="All tabs"
+            >
+              <Ellipsis size={14} aria-hidden="true" />
+            </button>
+            {allTabsOpen && (
+              <div className="tab-menu" role="menu">
+                {state.tabs.length === 0 ? (
+                  <div className="tab-menu-empty">No tabs open</div>
+                ) : (
+                  state.tabs.map((tab, index) => {
+                    const active = tab.id === state.activeTabId;
+                    const label = tab.title || 'New tab';
+                    return (
+                      <div
+                        className={active ? 'tab-menu-row is-active' : 'tab-menu-row'}
+                        key={tab.id}
+                      >
+                        <button
+                          type="button"
+                          role="menuitem"
+                          title={tab.url || label}
+                          onClick={() => {
+                            selectTab(tab.id);
+                            setAllTabsOpen(false);
+                          }}
+                        >
+                          <span className="tab-menu-number">{index + 1}</span>
+                          <span>{label}</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="tab-menu-close"
+                          aria-label={`Close tab ${index + 1}: ${label}`}
+                          title="Close tab"
+                          onClick={() => closeTab(tab.id)}
+                        >
+                          <X size={12} aria-hidden="true" />
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </div>
+        </fieldset>
+
         {state.isLoading && <span className="toolbar-progress" aria-hidden="true" />}
       </header>
 
