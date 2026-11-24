@@ -103,7 +103,7 @@ flowchart TB
 |---|---|
 | Renderer to main | Every IPC payload is untrusted and checked in main; main never opens a file path the renderer sends. |
 | App UI | Context isolation, sandbox, no Node, no webview tag; a Content Security Policy allows only the app's own scripts. |
-| Browser view | Web pages get no preload and no bridge, run in their own persistent session, load only http and https, and cannot open windows, download files, or get permissions. |
+| Browser view | Web pages get no preload and no bridge, run in their own persistent session, load only http and https, open popups as child tabs, and cannot open separate windows, download files, or get permissions. |
 | Extraction script | Runs in an isolated world, so page scripts cannot change what it reads; its output is checked again in main. |
 | Network recorder | The debugger is attached only during a session the user starts; headers, cookies, request bodies, and query values are never stored; bodies are pruned and redacted in main before the renderer gets them. |
 | OCR helpers | Windows OCR runs in a short-lived PowerShell process on a temporary copy that is deleted afterwards; Tesseract runs in a worker thread with a bundled model and no network. |
@@ -170,7 +170,7 @@ flowchart LR
 | Screenshots, OCR text, pages, notes, review choices | Renderer memory | Until the app closes |
 | Recorded network responses (pruned and redacted) | Main memory, mirrored in the renderer | Until removed, cleared, or the app closes |
 | Images being read by Windows OCR | A private temporary folder | Deleted after each job |
-| Browser cookies and site storage | The browser view's persistent session in the app's user data | Until the user clears them (a clear action is planned) |
+| Browser cookies and site storage | The browser tab views' persistent session in the app's user data | Until the user clears them (a clear action is planned) |
 | Saved packages | Where the user saves them | The user's files |
 
 ## Security and privacy
@@ -178,9 +178,10 @@ flowchart LR
 The rules in [PRIVACY.md](./PRIVACY.md) map onto the design like this:
 
 - **Explicit action:** nothing is collected until the user imports, captures, extracts, or
-  records; network recording has an explicit start and stop and a visible indicator in the
-  toolbar, page strip, and sidebar footer.
-- **Active page only:** one browser view, popups open in the same view, and only it is read.
+  records; network recording has an explicit start and stop and a visible indicator in the toolbar
+  button and sidebar footer.
+- **Active tab only:** one native browser view is visible, popups open in new in-app tabs, and only
+  the active tab is read.
 - **Secrets never exported:** page text is redacted in main at extraction; the package builder
   redacts every source at export, and edited text again on copy and save; links lose their
   query strings.

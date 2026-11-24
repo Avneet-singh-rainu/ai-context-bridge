@@ -11,6 +11,9 @@ export const IPC_CHANNELS = {
   saveContextPackage: 'context:save',
   browserNavigate: 'browser:navigate',
   browserCommand: 'browser:command',
+  browserNewTab: 'browser:new-tab',
+  browserCloseTab: 'browser:close-tab',
+  browserSelectTab: 'browser:select-tab',
   browserSetBounds: 'browser:set-bounds',
   browserGetState: 'browser:get-state',
   browserCapture: 'browser:capture',
@@ -24,6 +27,12 @@ export const IPC_CHANNELS = {
   networkState: 'network:state',
   /** Main -> renderer event, sent whenever the browser page changes. */
   browserState: 'browser:state',
+  /** Main -> renderer event when a page asks for HTTP credentials. */
+  browserLoginRequest: 'browser:login-request',
+  /** Main -> renderer event when a credential form must close. */
+  browserLoginClosed: 'browser:login-closed',
+  /** Renderer -> main answer to an HTTP credential request. */
+  browserLoginResponse: 'browser:login-response',
 } as const;
 
 export interface AppInfo {
@@ -71,9 +80,19 @@ export type SaveContextResponse =
   | { saved: true; filePath: string }
   | { saved: false; error?: string };
 
-/** The state of the built-in browser's single page, pushed by main on every change. */
+/** One tab in the tab strip. An empty tab has a blank URL and the title "New tab". */
+export interface BrowserTabState {
+  id: string;
+  url: string;
+  title: string;
+  isLoading: boolean;
+}
+
+/** The browser state pushed by main whenever a tab or the active page changes. */
 export interface BrowserState {
-  /** False until the user opens the first page; the browser view stays hidden until then. */
+  activeTabId: string | null;
+  tabs: BrowserTabState[];
+  /** False while the active tab is empty; the browser view stays hidden until then. */
   hasPage: boolean;
   url: string;
   title: string;
@@ -83,6 +102,26 @@ export interface BrowserState {
   security: PageSecurity;
   /** The latest notice: a failed load, a blocked link, a blocked download or permission. */
   notice?: { kind: 'error' | 'info'; text: string };
+  /** True while an HTTP credential prompt is open for the active tab. */
+  authRequired: boolean;
+}
+
+/** Metadata for a credential prompt. Main never sends stored credentials to the renderer. */
+export interface BrowserLoginRequest {
+  requestId: string;
+  tabId: string;
+  url: string;
+  origin: string;
+  host: string;
+  realm?: string;
+  isProxy: boolean;
+}
+
+export interface BrowserLoginResponse {
+  requestId: string;
+  accept: boolean;
+  username?: string;
+  password?: string;
 }
 
 export type BrowserCommand = 'back' | 'forward' | 'reload' | 'stop';
@@ -120,6 +159,12 @@ export interface BridgeApi {
   /** Opens address bar text: a URL, a bare host, or a DuckDuckGo search. */
   browserNavigate(input: string): Promise<NavigateResponse>;
   browserCommand(command: BrowserCommand): Promise<void>;
+  /** Opens an empty tab and makes it active. */
+  browserNewTab(): Promise<void>;
+  /** Closes the given tab, or the active tab when no id is supplied. */
+  browserCloseTab(id?: string): Promise<void>;
+  /** Makes an existing tab active. */
+  browserSelectTab(id: string): Promise<void>;
   browserSetBounds(bounds: BrowserBounds): void;
   browserGetState(): Promise<BrowserState>;
   /** PNG of the visible part of the active page. */
@@ -128,6 +173,12 @@ export interface BridgeApi {
   browserExtract(): Promise<PageExtractResponse>;
   /** Subscribes to browser state changes; returns a function that unsubscribes. */
   onBrowserState(listener: (state: BrowserState) => void): () => void;
+  /** Answers an HTTP credential prompt; `accept: false` cancels authentication. */
+  browserLoginResponse(response: BrowserLoginResponse): void;
+  /** Subscribes to HTTP credential prompts; returns a function that unsubscribes. */
+  onLoginRequest(listener: (request: BrowserLoginRequest) => void): () => void;
+  /** Subscribes to credential form closing; returns a function that unsubscribes. */
+  onLoginClosed(listener: (requestId: string) => void): () => void;
   /** Starts recording the active page's API responses. */
   networkStart(): Promise<{ ok: true } | { ok: false; error: string }>;
   networkStop(): Promise<void>;

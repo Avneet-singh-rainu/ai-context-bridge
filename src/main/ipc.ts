@@ -5,10 +5,14 @@ import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import { type AppInfo, IPC_CHANNELS, type SaveContextResponse } from '../shared/ipc-contract';
 import {
   capture,
+  closeTab,
   extractPage,
   getState,
   navigate,
+  newTab,
+  respondToLogin,
   runCommand,
+  selectTab,
   setBounds,
 } from './browser/browser-view';
 import {
@@ -71,7 +75,13 @@ export function registerIpcHandlers(): void {
   );
   ipcMain.handle(IPC_CHANNELS.browserNavigate, (_event, input: unknown) => navigate(input));
   ipcMain.handle(IPC_CHANNELS.browserCommand, (_event, command: unknown) => runCommand(command));
+  ipcMain.handle(IPC_CHANNELS.browserNewTab, () => newTab());
+  ipcMain.handle(IPC_CHANNELS.browserCloseTab, (_event, id: unknown) => closeTab(id));
+  ipcMain.handle(IPC_CHANNELS.browserSelectTab, (_event, id: unknown) => selectTab(id));
   ipcMain.handle(IPC_CHANNELS.browserGetState, () => getState());
+  ipcMain.on(IPC_CHANNELS.browserLoginResponse, (_event, response: unknown) =>
+    respondToLogin(response),
+  );
   ipcMain.handle(IPC_CHANNELS.browserCapture, () => capture());
   ipcMain.handle(IPC_CHANNELS.browserExtract, () => extractPage());
   ipcMain.on(IPC_CHANNELS.browserSetBounds, (_event, bounds: unknown) => setBounds(bounds));

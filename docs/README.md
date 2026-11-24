@@ -16,3 +16,4 @@ ticket.yaml.
 | [issue-8](./issue-8-network-capture/) | [M6] Capture network requests and permitted response bodies | In Progress | 2 | 2026-11-23 |
 | [issue-9](./issue-9-context-review/) | [M7] Unify context review and export | In Progress | 2 | 2026-11-23 |
 | [issue-11](./issue-11-native-electron-browser/) | Use Electron's native browser view | In Progress | 3 | 2026-11-23 |
+| [issue-12](./issue-12-tabbed-browser-ui/) | Add browser tabs and one compact top bar | In Progress | 3 | 2026-11-23 |

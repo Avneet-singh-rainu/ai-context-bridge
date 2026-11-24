@@ -19,7 +19,7 @@ Symbols, or Apple fonts.
 ## Window chrome
 
 - `titleBarStyle: 'hidden'` with `titleBarOverlay`: Windows draws minimize, maximize, and close
-  over the top right of the app's 52-pixel toolbar, so snap layouts keep working. The button
+  over the top right of the app's 36-pixel toolbar, so snap layouts keep working. The button
   colour follows light and dark mode (`nativeTheme` `updated` event in `src/main/index.ts`).
 - Every view's toolbar is the window's drag region; its buttons and fields are not. The toolbar
   leaves room for the caption buttons with `env(titlebar-area-*)` and a 138-pixel fallback
@@ -69,13 +69,14 @@ Dark mode redefines every colour and shadow under `prefers-color-scheme: dark`.
 
 ## Shell and views
 
-- **Sidebar:** app mark and name, navigation with icons and live counts (screenshots, included
-  context items), and a footer with the active page, the capture state, and the app version. The
-  footer replaced the old status bar.
-- **Browser:** Safari-style toolbar: back, forward, reload; an address field that shows a centred
-  security icon and host while idle and the full URL while editing; Extract page text and
-  Capture screenshot. A loading bar runs under the toolbar. A strip with the security badge,
-  title, URL, and capture state shows when a page is open. The start screen offers suggestions.
+- **Sidebar:** app mark and name, navigation with icons and live counts, and a footer with the
+  active page, capture state, network state, and app version. The sidebar collapses to a 60-pixel
+  icon rail.
+- **Browser:** one 36-pixel bar holds up to three tab pills, an overflow menu for extra tabs, a
+  new-tab button, back, forward, reload, the address field, and the page actions. The address field
+  shows a centred security icon and host while idle and the full URL while editing. A loading bar
+  runs under the bar. The active native page fills the rest of the workspace; the page strip is
+  gone. The start screen offers suggestions.
 - **Screenshots:** a card grid with large rounded thumbnails, a frosted position badge, hover and
   keyboard-focus actions (move earlier, move later, remove), and an OCR status icon.
 - **Context:** two panes: the review list on a grouped background (privacy card, notes,

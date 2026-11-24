@@ -1,5 +1,11 @@
 import { contextBridge, type IpcRendererEvent, ipcRenderer } from 'electron';
-import { type BridgeApi, type BrowserState, IPC_CHANNELS } from '../shared/ipc-contract';
+import {
+  type BridgeApi,
+  type BrowserLoginRequest,
+  type BrowserLoginResponse,
+  type BrowserState,
+  IPC_CHANNELS,
+} from '../shared/ipc-contract';
 import type { NetworkState } from '../shared/network';
 
 // The only bridge between the renderer and the main process. Keep the API small and typed.
@@ -9,6 +15,9 @@ const bridge: BridgeApi = {
   saveContextPackage: (request) => ipcRenderer.invoke(IPC_CHANNELS.saveContextPackage, request),
   browserNavigate: (input) => ipcRenderer.invoke(IPC_CHANNELS.browserNavigate, input),
   browserCommand: (command) => ipcRenderer.invoke(IPC_CHANNELS.browserCommand, command),
+  browserNewTab: () => ipcRenderer.invoke(IPC_CHANNELS.browserNewTab),
+  browserCloseTab: (id) => ipcRenderer.invoke(IPC_CHANNELS.browserCloseTab, id),
+  browserSelectTab: (id) => ipcRenderer.invoke(IPC_CHANNELS.browserSelectTab, id),
   browserSetBounds: (bounds) => ipcRenderer.send(IPC_CHANNELS.browserSetBounds, bounds),
   browserGetState: () => ipcRenderer.invoke(IPC_CHANNELS.browserGetState),
   browserCapture: () => ipcRenderer.invoke(IPC_CHANNELS.browserCapture),
@@ -18,6 +27,18 @@ const bridge: BridgeApi = {
     const handler = (_event: IpcRendererEvent, state: BrowserState) => listener(state);
     ipcRenderer.on(IPC_CHANNELS.browserState, handler);
     return () => ipcRenderer.removeListener(IPC_CHANNELS.browserState, handler);
+  },
+  browserLoginResponse: (response: BrowserLoginResponse) =>
+    ipcRenderer.send(IPC_CHANNELS.browserLoginResponse, response),
+  onLoginRequest: (listener) => {
+    const handler = (_event: IpcRendererEvent, request: BrowserLoginRequest) => listener(request);
+    ipcRenderer.on(IPC_CHANNELS.browserLoginRequest, handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.browserLoginRequest, handler);
+  },
+  onLoginClosed: (listener) => {
+    const handler = (_event: IpcRendererEvent, requestId: string) => listener(requestId);
+    ipcRenderer.on(IPC_CHANNELS.browserLoginClosed, handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.browserLoginClosed, handler);
   },
   networkStart: () => ipcRenderer.invoke(IPC_CHANNELS.networkStart),
   networkStop: () => ipcRenderer.invoke(IPC_CHANNELS.networkStop),

@@ -41,7 +41,7 @@
 - **Place the view.** Apply renderer bounds after mount, window resize, and zoom changes. Hide the
   view when Screenshots or Context is open, but keep the page.
 - **Harden the session.** Deny permissions and downloads, show plain notices, block non-http(s)
-  navigation, and open popups in the same view.
+  navigation, and open popups as child tabs that keep the original opener.
 - **Watch page events.** Push state on load, navigation, title change, and notice. Ignore
   `ERR_ABORTED` (-3), which only means a load was replaced.
 - **Capture screenshot.** Call `webContents.capturePage()`. If Chromium has no frame yet, repaint and
@@ -62,7 +62,10 @@
 - Failed main-frame load: show the URL and Chromium's error; ignore `ERR_ABORTED`.
 - Page crash: show a notice asking the user to reload.
 - Download or permission request: deny the request and show a plain notice.
-- Popup or `target="_blank"`: open the http(s) address in the same view; block other schemes.
+- Popup or `target="_blank"`: return a child `webContents` as a new in-app tab and keep the opener;
+  block other schemes.
+- HTTP credentials: pause the request, hide the native view, show the renderer form, and answer or
+  cancel; switching or closing the tab also closes the form.
 - Resize or zoom: recompute view bounds from renderer CSS pixels and the app zoom factor.
 - Google sign-in rejection: show a plain notice. ADR 0005 accepts this risk and adds no Chrome
   fallback.

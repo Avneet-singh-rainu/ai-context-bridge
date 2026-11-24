@@ -10,6 +10,8 @@ import {
 import { captureFileName } from '../../../../shared/address';
 import type {
   BrowserCommand,
+  BrowserLoginRequest,
+  BrowserLoginResponse,
   BrowserState,
   CaptureResponse,
   PageExtractResponse,
@@ -26,6 +28,8 @@ export type CaptureStatus =
   | { kind: 'failed'; error: string };
 
 const NO_PAGE: BrowserState = {
+  activeTabId: null,
+  tabs: [],
   hasPage: false,
   url: '',
   title: '',
@@ -33,6 +37,7 @@ const NO_PAGE: BrowserState = {
   canGoBack: false,
   canGoForward: false,
   security: 'not-secure',
+  authRequired: false,
 };
 
 interface BrowserContextValue {
@@ -40,9 +45,16 @@ interface BrowserContextValue {
   available: boolean;
   state: BrowserState;
   capture: CaptureStatus;
+  /** The open HTTP credential request, or null when no page is asking to sign in. */
+  loginRequest: BrowserLoginRequest | null;
+  /** Sends credentials to main; `accept: false` cancels the request. */
+  submitLogin: (response: BrowserLoginResponse) => void;
   /** Opens address bar text; resolves to an error message, or null when the page starts loading. */
   navigate: (input: string) => Promise<string | null>;
   command: (command: BrowserCommand) => void;
+  newTab: () => void;
+  closeTab: (id: string) => void;
+  selectTab: (id: string) => void;
   captureScreenshot: () => Promise<void>;
   /** Reads the page's text, headings, tables, and selection into Context. */
   extractPage: () => Promise<void>;
@@ -59,6 +71,7 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
   const { addPage } = usePageContent();
   const [state, setState] = useState<BrowserState>(NO_PAGE);
   const [capture, setCapture] = useState<CaptureStatus>({ kind: 'idle' });
+  const [loginRequest, setLoginRequest] = useState<BrowserLoginRequest | null>(null);
   const available = window.bridge !== undefined;
 
   useEffect(() => {
@@ -69,9 +82,19 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
       if (active) setState(initial);
     });
     const unsubscribe = api.onBrowserState(setState);
+    const unsubscribeLogin = api.onLoginRequest((request) => {
+      if (active) setLoginRequest(request);
+    });
+    const unsubscribeClosed = api.onLoginClosed((requestId) => {
+      if (active) {
+        setLoginRequest((current) => (current?.requestId === requestId ? null : current));
+      }
+    });
     return () => {
       active = false;
       unsubscribe();
+      unsubscribeLogin();
+      unsubscribeClosed();
     };
   }, []);
 
@@ -91,6 +114,26 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
 
   const command = useCallback((name: BrowserCommand) => {
     void window.bridge?.browserCommand(name);
+  }, []);
+
+  const submitLogin = useCallback((response: BrowserLoginResponse) => {
+    window.bridge?.browserLoginResponse(response);
+    setLoginRequest(null);
+  }, []);
+
+  const newTab = useCallback(() => {
+    setCapture({ kind: 'idle' });
+    void window.bridge?.browserNewTab();
+  }, []);
+
+  const closeTab = useCallback((id: string) => {
+    setCapture({ kind: 'idle' });
+    void window.bridge?.browserCloseTab(id);
+  }, []);
+
+  const selectTab = useCallback((id: string) => {
+    setCapture({ kind: 'idle' });
+    void window.bridge?.browserSelectTab(id);
   }, []);
 
   const captureScreenshot = useCallback(async () => {
@@ -146,8 +189,34 @@ export function BrowserProvider({ children }: { children: ReactNode }) {
   }, [addPage]);
 
   const value = useMemo(
-    () => ({ available, state, capture, navigate, command, captureScreenshot, extractPage }),
-    [available, state, capture, navigate, command, captureScreenshot, extractPage],
+    () => ({
+      available,
+      state,
+      capture,
+      loginRequest,
+      submitLogin,
+      navigate,
+      command,
+      newTab,
+      closeTab,
+      selectTab,
+      captureScreenshot,
+      extractPage,
+    }),
+    [
+      available,
+      state,
+      capture,
+      loginRequest,
+      submitLogin,
+      navigate,
+      command,
+      newTab,
+      closeTab,
+      selectTab,
+      captureScreenshot,
+      extractPage,
+    ],
   );
 
   return <BrowserContext.Provider value={value}>{children}</BrowserContext.Provider>;
