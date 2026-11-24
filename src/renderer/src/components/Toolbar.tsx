@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { ViewSwitcher } from './ViewSwitcher';
 
 /**
  * The unified toolbar at the top of every view: it doubles as the window's title bar (drag
@@ -15,6 +16,7 @@ export function Toolbar({
 }) {
   return (
     <header className="toolbar">
+      <ViewSwitcher />
       <div className="toolbar-heading">
         <h1>{title}</h1>
         {subtitle && <p>{subtitle}</p>}
