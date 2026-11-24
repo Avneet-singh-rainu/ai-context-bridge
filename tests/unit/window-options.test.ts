@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { createMainWindowOptions, supportsMica } from '../../src/main/window-options';
+import {
+  createMainWindowOptions,
+  supportsMica,
+  TOOLBAR_HEIGHT,
+} from '../../src/main/window-options';
 
 describe('createMainWindowOptions', () => {
   const options = createMainWindowOptions('C:/app/out/preload/index.js');
@@ -26,7 +30,7 @@ describe('createMainWindowOptions', () => {
     expect(options.titleBarOverlay).toEqual({
       color: '#00000000',
       symbolColor: '#1d1d1f',
-      height: 52,
+      height: TOOLBAR_HEIGHT,
     });
     const dark = createMainWindowOptions('x', { dark: true, mica: false });
     expect(dark.titleBarOverlay).toMatchObject({ symbolColor: '#f5f5f7' });

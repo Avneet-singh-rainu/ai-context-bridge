@@ -1,4 +1,12 @@
-import { FileText, Globe, Images, Layers, type LucideIcon } from 'lucide-react';
+import {
+  FileText,
+  Globe,
+  Images,
+  Layers,
+  type LucideIcon,
+  PanelLeftClose,
+  PanelLeftOpen,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { AppInfo } from '../../../shared/ipc-contract';
 import { describeCapture, useBrowser } from '../features/browser/BrowserProvider';
@@ -19,7 +27,7 @@ function hostOf(url: string): string {
   }
 }
 
-/** Active page and capture state on every view, as the issue asks; plus the app version. */
+/** Active page and capture state on every view, plus the app version. */
 function SidebarFooter() {
   const { state, capture } = useBrowser();
   const { network } = useNetwork();
@@ -70,16 +78,38 @@ interface SidebarProps {
   activeView: ViewId;
   counts: Partial<Record<ViewId, number>>;
   onSelect: (view: ViewId) => void;
+  collapsed: boolean;
+  onToggle: () => void;
 }
 
-export function Sidebar({ items, activeView, counts, onSelect }: SidebarProps) {
+export function Sidebar({
+  items,
+  activeView,
+  counts,
+  onSelect,
+  collapsed,
+  onToggle,
+}: SidebarProps) {
   return (
-    <nav className="sidebar" aria-label="Main">
+    <nav className={collapsed ? 'sidebar is-collapsed' : 'sidebar'} aria-label="Main">
       <div className="sidebar-top">
         <span className="app-mark" aria-hidden="true">
           <Layers size={15} strokeWidth={2.25} />
         </span>
         <span className="app-name">AI Context Bridge</span>
+        <button
+          type="button"
+          className="icon-btn sidebar-toggle"
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          onClick={onToggle}
+        >
+          {collapsed ? (
+            <PanelLeftOpen size={16} strokeWidth={1.8} aria-hidden="true" />
+          ) : (
+            <PanelLeftClose size={16} strokeWidth={1.8} aria-hidden="true" />
+          )}
+        </button>
       </div>
       <ul className="sidebar-list">
         {items.map((item) => {

@@ -1,0 +1,15 @@
+# Single source of truth for this ticket's status. docs/README.md is generated from these files:
+# run `node scripts/build-task-index.mjs` after any change here.
+
+ticket: issue-12
+title: Add browser tabs and one compact top bar
+status: In Progress
+blocked_reason:
+tier: 3
+
+systems: [browser, ui-design, app-shell]
+
+parent:
+children: []
+
+updated: 2026-11-23

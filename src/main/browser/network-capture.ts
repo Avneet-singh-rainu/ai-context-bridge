@@ -7,7 +7,7 @@ import {
   NO_NETWORK,
   responseKind,
 } from '../../shared/network';
-import { getPageContents, sendToApp } from './browser-view';
+import { getActivePage, sendToApp } from './browser-runtime';
 import { addResponse } from './network-store';
 
 /**
@@ -190,7 +190,7 @@ function endSession(notice?: NetworkState['notice']): void {
 
 export async function startRecording(): Promise<{ ok: true } | { ok: false; error: string }> {
   if (state.recording) return { ok: true };
-  const target = getPageContents();
+  const target = getActivePage();
   if (!target) return { ok: false, error: 'Open a page first.' };
   const origin = originOf(target.getURL());
   if (!origin) return { ok: false, error: 'Only http and https pages can be recorded.' };
@@ -231,8 +231,8 @@ export async function startRecording(): Promise<{ ok: true } | { ok: false; erro
   return { ok: true };
 }
 
-export function stopRecording(): void {
-  if (state.recording) endSession();
+export function stopRecording(notice?: NetworkState['notice']): void {
+  if (state.recording) endSession(notice);
 }
 
 /** Removes every kept response and resets the counters; recording, if on, continues. */
