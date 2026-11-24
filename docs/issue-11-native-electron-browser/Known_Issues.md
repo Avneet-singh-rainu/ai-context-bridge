@@ -47,8 +47,8 @@ still draws its own menus and dialogs.
 
 **Found:** 2026-11-23
 
-**What happens:** The app keeps one page at a time, captures only the visible area, and has no
-browser keyboard shortcuts such as F5, Alt+Left, or Ctrl+L.
+**What happens:** The app captures only the visible area. Browser keyboard shortcuts and Inspect
+were added later; see [Browser](../_systems/browser.md).
 
 **Why not fully fixed here:** These limits predate the Chrome work and stay outside this ticket.
 
