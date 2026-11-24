@@ -116,6 +116,12 @@ export function BrowserWorkspace() {
     if (!editing) setDraft(state.url);
   }, [state.url, editing]);
 
+  useEffect(() => {
+    const api = window.bridge;
+    if (!api) return;
+    return api.onBrowserFocusAddress(() => inputRef.current?.focus());
+  }, []);
+
   // The left group fills first; measure how many numbered tabs fit before the right group starts.
   useEffect(() => {
     const strip = leftTabStripRef.current;
@@ -129,7 +135,7 @@ export function BrowserWorkspace() {
     const observer = new ResizeObserver(measure);
     observer.observe(strip);
     return () => observer.disconnect();
-  }, [state.tabs.length]);
+  }, []);
 
   useEffect(() => {
     const strips = [leftTabStripRef.current, rightTabStripRef.current].filter(

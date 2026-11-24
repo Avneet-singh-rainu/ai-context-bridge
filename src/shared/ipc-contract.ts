@@ -16,6 +16,8 @@ export const IPC_CHANNELS = {
   browserSelectTab: 'browser:select-tab',
   browserSetBounds: 'browser:set-bounds',
   browserGetState: 'browser:get-state',
+  /** Main -> renderer request to focus and select the browser's address field. */
+  browserFocusAddress: 'browser:focus-address',
   browserCapture: 'browser:capture',
   browserExtract: 'browser:extract',
   networkStart: 'network:start',
@@ -167,6 +169,8 @@ export interface BridgeApi {
   browserSelectTab(id: string): Promise<void>;
   browserSetBounds(bounds: BrowserBounds): void;
   browserGetState(): Promise<BrowserState>;
+  /** Subscribes to requests from main to focus the address field; returns an unsubscribe function. */
+  onBrowserFocusAddress(listener: () => void): () => void;
   /** PNG of the visible part of the active page. */
   browserCapture(): Promise<CaptureResponse>;
   /** Text, headings, tables, and selection of the active page; limited and redacted in main. */

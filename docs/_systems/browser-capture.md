@@ -50,7 +50,8 @@ The Electron CDP spike in `spikes/electron-cdp/` first proved the path.
   and no preload. The spike probe found `require`, `process`, `module`, and `window.electronAPI`
   all `undefined` in the page world.
 - Opening Chromium DevTools on the browser view detaches `webContents.debugger` and ends the
-  session. The app's code has no command that opens DevTools on the view.
+  session. The Inspect command (right-click menu, F12, or Ctrl+Shift+I) stops recording with a
+  notice before DevTools opens, so the debugger is never taken over mid-request.
 
 ## Limits
 

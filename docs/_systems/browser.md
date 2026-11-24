@@ -78,14 +78,33 @@ Context, with limits and secret redaction. See [Page content](./page-content.md)
 **Record network** records the active tab's API calls (fetch and XHR) with JSON or text bodies,
 pruned and redacted in main, for review in Context. See [Browser capture](./browser-capture.md).
 
+## Keyboard and Inspect
+
+Main handles browser keys on the app window and on every native page view, so the keys work even
+while a web page has focus.
+
+| Keys | Action |
+|---|---|
+| Ctrl+T | New tab |
+| Ctrl+W | Close the active tab |
+| Ctrl+Tab / Ctrl+Shift+Tab | Next / previous tab, wrapping at the ends |
+| Ctrl+1 to Ctrl+9 | Select the numbered tab |
+| Ctrl+R / F5 | Reload the active page |
+| Alt+Left / Alt+Right | Back / forward |
+| Ctrl+L | Focus and select the address field |
+| F12 / Ctrl+Shift+I | Inspect the active page |
+
+Right-click a page and choose **Inspect** to open native Chromium developer tools in a separate
+window. Inspect stops network recording first because DevTools takes over the same debugger. See
+[Browser capture](./browser-capture.md).
+
 ## Limits
 
 - Tabs are native views; only the active tab can be captured, read, or recorded.
-- The shell uses one 36 px bar with three visible tab pills; extra tabs sit in an overflow menu. The
-  sidebar collapses to a 60 px rail.
+- Numbered tabs sit on both sides of the fixed 320 px address field. The left group fills first,
+  and extra tabs spill into the right group or the all-tabs panel.
 - No tab drag reorder, pinned tabs, tab groups, or session restore.
 - Capture covers the visible area only, not the full page.
-- No keyboard shortcuts yet (F5, Alt+Left, Ctrl+L); key presses inside the page go to the page.
 - Google sign-in failed in an earlier native-view attempt and still needs a real-account test.
   Opener-backed sign-in popups now stay in app tabs, but no Chrome or WebView2 fallback exists. ADR
   0005 accepts the remaining sign-in risk.

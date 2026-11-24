@@ -20,6 +20,11 @@ const bridge: BridgeApi = {
   browserSelectTab: (id) => ipcRenderer.invoke(IPC_CHANNELS.browserSelectTab, id),
   browserSetBounds: (bounds) => ipcRenderer.send(IPC_CHANNELS.browserSetBounds, bounds),
   browserGetState: () => ipcRenderer.invoke(IPC_CHANNELS.browserGetState),
+  onBrowserFocusAddress: (listener) => {
+    const handler = (_event: IpcRendererEvent) => listener();
+    ipcRenderer.on(IPC_CHANNELS.browserFocusAddress, handler);
+    return () => ipcRenderer.removeListener(IPC_CHANNELS.browserFocusAddress, handler);
+  },
   browserCapture: () => ipcRenderer.invoke(IPC_CHANNELS.browserCapture),
   browserExtract: () => ipcRenderer.invoke(IPC_CHANNELS.browserExtract),
   onBrowserState: (listener) => {
