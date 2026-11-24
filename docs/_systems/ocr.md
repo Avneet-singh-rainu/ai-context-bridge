@@ -6,7 +6,8 @@ Facts about local text extraction that stay true after issue-5 closes. Main-proc
 ## Flow
 
 1. **Extract text** (Screenshots or Context view) walks the screenshot list in order and picks
-   each screenshot that has no text yet or whose last run failed.
+   each screenshot that has no text yet or whose last run failed. A card can also run OCR for one
+   screenshot with its own **Extract text** action.
 2. For each one, the renderer reads the original file bytes and calls `window.bridge.recognizeText`
    (IPC channel `ocr:recognize`).
 3. Main checks the bytes (`parseOcrRequest` in `src/main/ipc-requests.ts`): at most 20 MB, and a
@@ -52,7 +53,9 @@ and keeps at most one blank line in a row.
 
 `OcrEntry` in `ocr-store.ts`: status (`running`, `done`, `failed`), engine, `extractedText` (as the
 engine returned it), `text` (what the user sees and exports; follows edits), confidence, fallback
-reason, and error. Removing a screenshot forgets its entry. Everything lives in memory only.
+reason, and error. Each screenshot card shows `text` in its own editable box; **Restore** copies
+`extractedText` back into `text`. Removing a screenshot forgets its entry. Everything lives in
+memory only.
 
 ## Limits
 

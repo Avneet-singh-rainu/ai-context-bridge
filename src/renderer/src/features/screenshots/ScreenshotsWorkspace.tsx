@@ -1,6 +1,7 @@
 import { CircleCheck, ImagePlus, LoaderCircle, Plus, TriangleExclamationPoint } from 'lucide-react';
-import { type ChangeEvent, type DragEvent, useRef, useState } from 'react';
+import { type ChangeEvent, type DragEvent, useEffect, useRef, useState } from 'react';
 import { Toolbar } from '../../components/Toolbar';
+import { imageFilesFromClipboard } from './clipboard-images';
 import { ExtractTextButton } from './ExtractTextButton';
 import { ACCEPTED_FILE_TYPES, SCREENSHOT_LIMITS } from './image-validation';
 import type { ImportResult } from './import-screenshots';
@@ -43,7 +44,20 @@ function ImportReport({ result }: { result: ImportResult }) {
 }
 
 export function ScreenshotsWorkspace() {
-  const { screenshots, ocr, importing, lastImport, addFiles, remove, move } = useScreenshots();
+  const {
+    screenshots,
+    ocr,
+    importing,
+    extracting,
+    canExtract,
+    lastImport,
+    addFiles,
+    remove,
+    move,
+    recognizeOne,
+    editText,
+    restoreText,
+  } = useScreenshots();
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const isFull = screenshots.length >= SCREENSHOT_LIMITS.maxFiles;
@@ -76,6 +90,23 @@ export function ScreenshotsWorkspace() {
     setIsDragging(false);
     void addFiles(Array.from(event.dataTransfer.files));
   };
+
+  // The Screenshots view is mounted only while it is active, so this listener stays local to it.
+  useEffect(() => {
+    const onPaste = (event: ClipboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const tag = target?.tagName;
+      // Text pasted into an OCR editor must stay text, not become a screenshot.
+      if (target?.isContentEditable || tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (!event.clipboardData) return;
+      const files = imageFilesFromClipboard(event.clipboardData);
+      if (files.length === 0) return;
+      event.preventDefault();
+      void addFiles(files);
+    };
+    document.addEventListener('paste', onPaste);
+    return () => document.removeEventListener('paste', onPaste);
+  }, [addFiles]);
 
   return (
     <section
@@ -135,7 +166,10 @@ export function ScreenshotsWorkspace() {
               <ImagePlus size={30} strokeWidth={1.6} aria-hidden="true" />
             </span>
             <h2>Drop screenshots here</h2>
-            <p>PNG, JPG, or WEBP, up to 20 MB each. Add up to 20; 5 to 10 works best.</p>
+            <p>
+              Drop files, paste an image, or choose files. PNG, JPG, or WEBP, up to 20 MB each. Add
+              up to 20; 5 to 10 works best.
+            </p>
             <span className="btn btn-secondary">Choose files...</span>
           </button>
         ) : (
@@ -147,8 +181,13 @@ export function ScreenshotsWorkspace() {
                 ocr={ocr[screenshot.id]}
                 index={index}
                 total={screenshots.length}
+                canExtract={canExtract}
+                busy={extracting}
                 onMove={move}
                 onRemove={remove}
+                onExtractText={(id) => void recognizeOne(id)}
+                onEditText={editText}
+                onRestoreText={restoreText}
               />
             ))}
           </ol>

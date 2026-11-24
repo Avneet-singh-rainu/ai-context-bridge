@@ -6,7 +6,9 @@ Facts about screenshot import that stay true after issue-4 closes. Code lives in
 ## Flow
 
 1. The user picks files with **Add screenshots** (an `<input type="file" multiple>`, which
-   Electron shows as the native Windows picker) or drops files on the Screenshots view.
+   Electron shows as the native Windows picker), drops files on the Screenshots view, or pastes a
+   copied image while the Screenshots view is open. Clipboard images become files with unique
+   `pasted-*` names, then enter the same checks. Pasting text into an OCR editor stays text.
 2. `importScreenshots` checks each file in order, one at a time, so only one full-size image is
    decoded at once.
 3. Accepted files join the end of the list. The view shows how many were added and why each
@@ -57,6 +59,8 @@ the app closes.
 
 ## Limits
 
+- Each card shows its own OCR text in an editable box, plus an **Extract text** action while that
+  screenshot needs text. See [OCR](./ocr.md).
 - Reorder uses **<** and **>** buttons on each card; there is no drag-to-reorder.
 - After **Remove**, keyboard focus is not moved to another card. See
   [issue-4 Known_Issues](../issue-4-screenshot-import/Known_Issues.md).

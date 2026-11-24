@@ -1385,6 +1385,35 @@ button {
   color: var(--red);
 }
 
+.shot-extract {
+  align-self: flex-start;
+  height: 24px;
+  margin-top: 3px;
+}
+
+.shot-text {
+  margin-top: 4px;
+}
+
+.shot-text-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 24px;
+  color: var(--text-2);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.shot-ocr-editor {
+  min-height: 78px;
+  margin-top: 2px;
+  font-size: 12px;
+}
+
 .spin {
   animation: spin 0.9s linear infinite;
 }
@@ -1550,7 +1579,8 @@ button {
 }
 
 .text-editor textarea,
-.page-field textarea {
+.page-field textarea,
+.shot-ocr-editor {
   display: block;
   width: 100%;
   margin-top: 10px;
@@ -1573,7 +1603,8 @@ button {
 }
 
 .text-editor textarea:focus,
-.page-field textarea:focus {
+.page-field textarea:focus,
+.shot-ocr-editor:focus {
   outline: none;
   background: var(--surface);
   box-shadow:
