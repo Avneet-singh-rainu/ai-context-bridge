@@ -1,5 +1,6 @@
 import {
   type BrowserWindow,
+  Menu,
   type Session,
   session,
   type WebContents,
@@ -19,6 +20,7 @@ import {
 import { bindBrowserRuntime } from './browser-runtime';
 import { stopRecording } from './network-capture';
 import { readPage } from './page-extract';
+import { attachBrowserShortcuts, type BrowserShortcutActions } from './shortcuts';
 import { activeAfterClose, insertAfterActive } from './tab-model';
 
 /** Cookies and storage for web pages, kept apart from the app UI's own session. */
@@ -285,6 +287,18 @@ function watchPage(tab: TabRecord, contents: WebContents): void {
     };
   });
 
+  contents.on('context-menu', () => {
+    const menu = Menu.buildFromTemplate([
+      {
+        label: 'Inspect',
+        click: () => inspectPage(),
+      },
+    ]);
+    menu.popup();
+  });
+
+  attachBrowserShortcuts(contents, shortcutActions());
+
   contents.on('login', (event, details, authInfo, callback) => {
     event.preventDefault();
     const requestId = `login-${nextLoginId++}`;
@@ -409,6 +423,7 @@ export function attachBrowser(window: BrowserWindow): void {
     if (ownerWindow && !ownerWindow.isDestroyed()) ownerWindow.webContents.send(channel, payload);
   };
   bindBrowserRuntime(() => getPageContents(), sendToRenderer);
+  attachBrowserShortcuts(window.webContents, shortcutActions());
   window.on('closed', () => {
     cancelAllLogins();
     for (const tab of tabs) {
@@ -497,6 +512,45 @@ export function runCommand(command: unknown): void {
   else if (command === 'forward' && history.canGoForward()) history.goForward();
   else if (command === 'reload' && tab?.hasPage) contents.reload();
   else if (command === 'stop') contents.stop();
+}
+
+/** Selects the next or previous tab, wrapping at the ends of the strip. */
+export function cycleTab(direction: -1 | 1): void {
+  if (tabs.length === 0) return;
+  const current = tabs.findIndex((tab) => tab.id === activeTabId);
+  const next = current < 0 ? 0 : (current + direction + tabs.length) % tabs.length;
+  changeActive(tabs[next].id);
+}
+
+/** Selects a tab by its number in the strip, counting from zero. */
+export function selectTabIndex(index: number): void {
+  const tab = tabs[index];
+  if (tab) changeActive(tab.id);
+}
+
+/** Opens native developer tools for the active page in a separate window. */
+export function inspectPage(): void {
+  const contents = getPageContents();
+  if (!contents || contents.isDestroyed()) return;
+  // DevTools takes over the debugger, so end recording with a clear reason first.
+  stopRecording({ kind: 'info', text: 'Recording stopped: developer tools were opened.' });
+  contents.openDevTools({ mode: 'detach' });
+}
+
+/** Shared key actions for the app window and every native page view. */
+function shortcutActions(): BrowserShortcutActions {
+  return {
+    newTab,
+    closeTab: () => closeTab(),
+    nextTab: () => cycleTab(1),
+    previousTab: () => cycleTab(-1),
+    selectTab: selectTabIndex,
+    reload: () => runCommand('reload'),
+    back: () => runCommand('back'),
+    forward: () => runCommand('forward'),
+    focusAddress: () => sendToRenderer?.(IPC_CHANNELS.browserFocusAddress, undefined),
+    inspect: inspectPage,
+  };
 }
 
 export function setBounds(next: unknown): void {
